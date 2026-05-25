@@ -1,0 +1,66 @@
+.tab { padding: 20px 28px; }
+
+.planHero { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px,1fr)); gap: 12px; margin-bottom: 24px; }
+.planStat { background: var(--card); border: 1px solid #272727; border-radius: 12px; padding: 16px; }
+.planStatLabel { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
+.planStatVal { font-family: 'Space Mono', monospace; font-size: 20px; }
+.hi { color: var(--orange); }
+
+.planSection { font-family: 'Bebas Neue'; font-size: 20px; letter-spacing: 1px; color: var(--orange); margin: 20px 0 12px; }
+.planTip { background: rgba(41,121,255,.07); border: 1px solid rgba(41,121,255,.2); border-radius: 9px; padding: 11px 14px; font-size: 12px; color: #93c5fd; margin-top: 10px; line-height: 1.5; }
+
+.zonesGrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px,1fr)); gap: 8px; margin-bottom: 24px; }
+.zone { border-radius: 10px; padding: 12px 14px; }
+.zl { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; opacity: .75; margin-bottom: 3px; }
+.zp { font-family: 'Space Mono'; font-size: 17px; font-weight: 700; }
+.zn { font-size: 11px; opacity: .6; margin-top: 2px; }
+.z1 { background: rgba(0,230,118,.08); border: 1px solid rgba(0,230,118,.25); color: var(--green); }
+.z2 { background: rgba(41,121,255,.08); border: 1px solid rgba(41,121,255,.25); color: var(--blue); }
+.z3 { background: rgba(255,235,59,.08); border: 1px solid rgba(255,235,59,.25); color: #ffeb3b; }
+.z4 { background: rgba(252,76,2,.08);   border: 1px solid rgba(252,76,2,.25);   color: var(--orange); }
+.z5 { background: rgba(244,67,54,.08);  border: 1px solid rgba(244,67,54,.25);  color: #f44336; }
+
+.weekCard { background: var(--card); border: 1px solid #272727; border-radius: 14px; margin-bottom: 12px; overflow: hidden; }
+.weekHdr { padding: 14px 18px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; gap: 10px; }
+.weekHdr:hover { background: #1e1e1e; }
+.weekTitle { font-family: 'Bebas Neue'; font-size: 20px; letter-spacing: 1px; }
+.weekDates { font-size: 11px; color: var(--muted); margin-top: 1px; }
+.weekFocus { font-size: 12px; color: var(--orange); }
+.weekKm    { font-family: 'Space Mono'; font-size: 12px; color: var(--muted); }
+.arrow { color: var(--muted); font-size: 16px; margin-left: 12px; transition: transform .2s; }
+.open .arrow { transform: rotate(180deg); }
+.weekBody { padding: 0 18px 16px; }
+
+.phase { display: inline-block; font-size: 9px; padding: 2px 7px; border-radius: 4px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; margin-left: 8px; vertical-align: middle; }
+.phBase  { background: rgba(41,121,255,.15); color: var(--blue); }
+.phBuild { background: rgba(255,235,59,.15); color: #ffeb3b; }
+.phPeak  { background: rgba(252,76,2,.15);   color: var(--orange); }
+.phTaper { background: rgba(168,85,247,.15); color: #a855f7; }
+.phRace  { background: rgba(244,67,54,.15);  color: #f44336; }
+
+.sessList { display: flex; flex-direction: column; gap: 8px; margin-top: 14px; }
+.sess { display: grid; grid-template-columns: 76px 1fr 52px; gap: 10px; align-items: start; padding: 11px 14px; border-radius: 9px; background: #1c1c1c; border: 1px solid #272727; }
+.interval { border-left: 3px solid var(--orange); }
+.easy     { border-left: 3px solid var(--green); }
+.tempo    { border-left: 3px solid #ffeb3b; }
+.long     { border-left: 3px solid var(--blue); }
+.race-p   { border-left: 3px solid #f44336; }
+.rest-d   { border-left: 3px solid #333; opacity: .5; }
+.sessDay     { font-size: 10px; color: var(--muted); text-transform: uppercase; }
+.sessDayName { font-size: 13px; margin-top: 2px; font-weight: 500; }
+.sessTitle   { font-weight: 600; font-size: 13px; margin-bottom: 3px; }
+.sessDesc    { font-size: 12px; color: var(--muted); line-height: 1.5; }
+.sessDesc b  { color: var(--text); }
+.sessKm      { font-family: 'Space Mono'; font-size: 11px; color: var(--muted); text-align: right; padding-top: 2px; }
+
+.raceBlock { background: rgba(244,67,54,.05); border: 1px solid rgba(244,67,54,.2); border-radius: 14px; padding: 18px; margin-bottom: 12px; }
+.raceBlockTitle { font-family: 'Bebas Neue'; font-size: 18px; letter-spacing: 1px; color: #f44336; margin-bottom: 12px; }
+
+.vacBlock { background: rgba(168,85,247,.05); border: 1px solid rgba(168,85,247,.2); border-radius: 14px; padding: 18px; margin-bottom: 12px; }
+.vacBlockTitle { font-family: 'Bebas Neue'; font-size: 18px; color: #a855f7; margin-bottom: 6px; }
+.vacBlock p { font-size: 13px; color: #c4b5fd; line-height: 1.6; }
+
+@media (max-width: 700px) {
+  .tab { padding: 14px 16px; }
+  .sess { grid-template-columns: 60px 1fr 40px; }
+}

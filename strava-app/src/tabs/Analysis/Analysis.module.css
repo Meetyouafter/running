@@ -1,0 +1,114 @@
+.readiness {
+  background: var(--card);
+  border: 1px solid #272727;
+  border-radius: 14px;
+  padding: 18px;
+  margin-bottom: 20px;
+}
+
+.readinessHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 14px;
+  gap: 10px;
+}
+
+.readinessTitle {
+  font-family: 'Bebas Neue';
+  font-size: 20px;
+  letter-spacing: 1px;
+  margin-bottom: 2px;
+}
+
+.readinessItems {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ri {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  padding: 6px 0;
+  border-bottom: 1px solid #1a1a1a;
+}
+.ri:last-child { border-bottom: none; }
+
+.block8020 {
+  background: var(--card);
+  border: 1px solid #272727;
+  border-radius: 14px;
+  padding: 18px;
+  margin-bottom: 20px;
+}
+
+.pvfTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  margin-bottom: 20px;
+}
+.pvfTable th {
+  text-align: left;
+  padding: 8px 10px;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--muted);
+  border-bottom: 1px solid #222;
+  white-space: nowrap;
+}
+.pvfTable td {
+  padding: 8px 10px;
+  border-bottom: 1px solid #1c1c1c;
+  vertical-align: middle;
+}
+.pvfTable tr:last-child td { border-bottom: none; }
+.pvfTable tr:hover td { background: #141414; }
+
+.diffPos { font-family: 'Space Mono'; font-size: 11px; color: var(--green); }
+.diffNeg { font-family: 'Space Mono'; font-size: 11px; color: #f44336; }
+.diffOk  { font-family: 'Space Mono'; font-size: 11px; color: var(--muted); }
+
+.aiBlock {
+  background: linear-gradient(135deg, #0d0d1a, #0a1a0a);
+  border: 1px solid #2a2a3a;
+  border-radius: 14px;
+  padding: 18px;
+  margin-top: 24px;
+}
+
+.aiBlockHeader {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+
+.aiBtn {
+  background: linear-gradient(135deg, #4f46e5, #7c3aed);
+  color: white;
+  border: none;
+  border-radius: 7px;
+  padding: 8px 18px;
+  font-family: 'DM Sans';
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: opacity .2s;
+}
+.aiBtn:hover { opacity: .85; }
+.aiBtn:disabled { opacity: .4; cursor: not-allowed; }
+
+.aiResponse {
+  font-size: 13px;
+  line-height: 1.8;
+  color: #ddd;
+  white-space: pre-wrap;
+  margin-top: 12px;
+}

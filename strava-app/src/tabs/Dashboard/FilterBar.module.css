@@ -1,0 +1,18 @@
+.bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 24px; }
+.label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-right: 4px; }
+
+.btn {
+  background: #1e1e1e; border: 1.5px solid #333; border-radius: 99px;
+  color: #aaa; font-family: 'DM Sans', sans-serif; font-size: 13px;
+  font-weight: 500; padding: 6px 14px; cursor: pointer; transition: all .15s;
+  display: flex; align-items: center; gap: 5px;
+}
+.btn:hover { border-color: #666; color: var(--text); }
+
+.count { background: rgba(0,0,0,.2); border-radius: 99px; font-size: 11px; padding: 1px 7px; }
+
+.faAll   { background: var(--orange); border-color: var(--orange); color: white; }
+.faRun   { background: var(--orange); border-color: var(--orange); color: white; }
+.faRide  { background: #2979ff;       border-color: #2979ff;       color: white; }
+.faWalk  { background: var(--green);  border-color: var(--green);  color: #000; }
+.faOther { background: #555;          border-color: #555;          color: white; }

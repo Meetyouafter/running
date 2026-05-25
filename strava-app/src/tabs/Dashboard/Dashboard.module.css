@@ -1,0 +1,19 @@
+.tab { padding: 20px 28px; }
+
+.periodBar {
+  display: flex; align-items: center; gap: 8px;
+  margin-bottom: 20px; flex-wrap: wrap;
+}
+.periodLabel { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-right: 4px; }
+
+.periodBtn {
+  background: #1a1a1a; border: 1.5px solid #2e2e2e; border-radius: 8px;
+  color: #888; font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500;
+  padding: 7px 16px; cursor: pointer; transition: all .15s;
+}
+.periodBtn:hover { border-color: #555; color: var(--text); }
+.periodBtn.active { background: #1e1208; border-color: var(--orange); color: var(--orange); font-weight: 600; }
+
+@media (max-width: 700px) {
+  .tab { padding: 14px 16px; }
+}

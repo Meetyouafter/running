@@ -1,0 +1,83 @@
+.tab { padding: 20px 28px; }
+
+.topBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.dayBtn {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  color: var(--muted2);
+  font-size: 12px;
+  padding: 5px 12px;
+  cursor: pointer;
+  transition: all .15s;
+}
+.dayBtn:hover { border-color: #444; color: var(--text); }
+.dayBtnActive {
+  background: var(--orange-dim);
+  border-color: var(--orange);
+  color: var(--orange);
+}
+
+.pmcWrap { margin-bottom: 20px; }
+
+.pmcLegend {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.pmcLegendItem {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--muted2);
+}
+
+.pmcDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.actTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  margin-bottom: 20px;
+}
+.actTable th {
+  text-align: left;
+  padding: 8px 10px;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--muted);
+  border-bottom: 1px solid #222;
+  white-space: nowrap;
+}
+.actTable td {
+  padding: 8px 10px;
+  border-bottom: 1px solid #1c1c1c;
+  font-size: 12px;
+  color: var(--muted2);
+}
+.actTable tbody tr:hover td { background: #141414; }
+.actTable td:nth-child(2) { color: var(--text); }
+
+.mono { font-family: 'Space Mono', monospace; }
+.loadCell { color: var(--orange) !important; }
+
+@media (max-width: 700px) {
+  .tab { padding: 14px 16px; }
+}
