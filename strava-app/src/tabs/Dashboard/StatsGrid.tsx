@@ -1,5 +1,5 @@
 import type { StravaActivity } from '../../types/strava';
-import { fmt, dur, hrColor, ICONS, BADGE_CLASS } from '../../lib/utils';
+import { fmt, dur, hrColor } from '../../lib/utils';
 
 interface Props { activities: StravaActivity[] }
 
@@ -9,9 +9,6 @@ export default function StatsGrid({ activities }: Props) {
   const totalElev = activities.reduce((s, a) => s + (a.total_elevation_gain || 0), 0);
   const hrActs    = activities.filter(a => a.average_heartrate);
   const avgHR     = hrActs.length ? hrActs.reduce((s, a) => s + a.average_heartrate!, 0) / hrActs.length : 0;
-
-  const byType: Record<string, number> = {};
-  activities.forEach(a => { byType[a.type] = (byType[a.type] || 0) + 1; });
 
   return (
     <div className="stats-grid">
@@ -35,16 +32,6 @@ export default function StatsGrid({ activities }: Props) {
         <div className="stat-label">Ср. пульс</div>
         <div className="stat-value" style={{ color: hrColor(avgHR) }}>
           {avgHR ? fmt(avgHR, 0) : '—'}<span className="stat-unit">bpm</span>
-        </div>
-      </div>
-      <div className="stat-card">
-        <div className="stat-label">Типы</div>
-        <div style={{ marginTop: 6 }}>
-          {Object.keys(byType).map(t => (
-            <span key={t} className={`badge ${BADGE_CLASS[t] || 'badge-other'}`} style={{ marginRight: 4 }}>
-              {ICONS[t] || '🏅'} {t}: {byType[t]}
-            </span>
-          ))}
         </div>
       </div>
     </div>

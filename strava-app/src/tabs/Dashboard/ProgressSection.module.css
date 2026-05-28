@@ -1,0 +1,70 @@
+/* ── Goal progress card ── */
+.goalCard {
+  background: var(--card);
+  border: 1px solid #272727;
+  border-radius: 14px;
+  padding: 18px 20px;
+  margin-bottom: 20px;
+}
+.goalRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+.goalTitle {
+  font-family: 'Bebas Neue';
+  font-size: 18px;
+  letter-spacing: 1px;
+  color: var(--orange);
+}
+.goalSub  { font-size: 11px; color: var(--muted); margin-top: 3px; }
+.goalTimes { display: flex; align-items: center; gap: 14px; }
+.goalLabel { font-size: 9px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-bottom: 2px; }
+.goalVal   { font-family: 'Space Mono'; font-size: 24px; line-height: 1; }
+.goalUnit  { font-size: 13px; color: var(--muted); }
+.goalValTarget { color: var(--orange); }
+.goalArrow { font-size: 20px; color: #333; margin-top: 12px; }
+
+.progressTrack {
+  height: 8px;
+  background: #1e1e1e;
+  border-radius: 99px;
+  overflow: hidden;
+  margin-bottom: 7px;
+}
+.progressFill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--blue), var(--orange));
+  border-radius: 99px;
+  transition: width .5s ease;
+}
+.progressLabels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  color: var(--muted);
+}
+.progressPct { color: var(--orange); font-weight: 600; }
+
+/* ── Current week bar ── */
+.weekBar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: var(--card);
+  border: 1px solid #272727;
+  border-radius: 12px;
+  padding: 13px 18px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+.weekBarTitle { font-family: 'Bebas Neue'; font-size: 16px; letter-spacing: 1px; min-width: 130px; }
+.dots         { display: flex; gap: 8px; }
+.dot          { width: 16px; height: 16px; border-radius: 50%; }
+.dotDone      { background: var(--green); }
+.dotMiss      { background: #f44336; }
+.dotFuture    { background: #222; border: 1.5px solid #3a3a3a; }
+.weekBarSub   { font-size: 12px; color: var(--muted); margin-left: auto; }

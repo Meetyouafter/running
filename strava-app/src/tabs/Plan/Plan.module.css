@@ -53,12 +53,109 @@
 .sessDesc b  { color: var(--text); }
 .sessKm      { font-family: 'Space Mono'; font-size: 11px; color: var(--muted); text-align: right; padding-top: 2px; }
 
+.weekActuals { margin-top: 14px; padding: 12px 14px; background: #181818; border: 1px solid #2a2a2a; border-radius: 9px; }
+.weekActualsTitle { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-bottom: 8px; }
+.actualsRow { display: grid; grid-template-columns: 48px 1fr auto 20px; gap: 6px; align-items: center; font-size: 11px; padding: 3px 0; border-bottom: 1px solid #222; }
+.actualsRow:last-of-type { border-bottom: none; }
+.actualsDate { font-family: 'Space Mono'; color: var(--muted); }
+.actualsType { color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.actualsVal { font-family: 'Space Mono'; font-size: 10px; color: var(--text); text-align: right; }
+.actualsSummary { margin-top: 8px; font-size: 11px; color: var(--muted); text-align: right; }
+
 .raceBlock { background: rgba(244,67,54,.05); border: 1px solid rgba(244,67,54,.2); border-radius: 14px; padding: 18px; margin-bottom: 12px; }
 .raceBlockTitle { font-family: 'Bebas Neue'; font-size: 18px; letter-spacing: 1px; color: #f44336; margin-bottom: 12px; }
 
 .vacBlock { background: rgba(168,85,247,.05); border: 1px solid rgba(168,85,247,.2); border-radius: 14px; padding: 18px; margin-bottom: 12px; }
 .vacBlockTitle { font-family: 'Bebas Neue'; font-size: 18px; color: #a855f7; margin-bottom: 6px; }
 .vacBlock p { font-size: 13px; color: #c4b5fd; line-height: 1.6; }
+
+.editPlanBtn {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 8px; padding: 7px 14px; color: var(--muted2);
+  font-family: 'DM Sans', sans-serif; font-size: 12px; cursor: pointer;
+  transition: border-color .15s, color .15s;
+}
+.editPlanBtn:hover { border-color: var(--orange); color: var(--text); }
+
+.planModifiedBadge {
+  background: rgba(252,76,2,.12); border: 1px solid rgba(252,76,2,.3);
+  border-radius: 6px; padding: 3px 10px; font-size: 11px; color: var(--orange);
+}
+
+/* ─── Plan Editor overlay ─────────────────────────────── */
+.editorOverlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,.7);
+  z-index: 200; display: flex; align-items: flex-start; justify-content: center;
+  padding: 24px 16px; overflow-y: auto;
+}
+.editorModal {
+  background: var(--card); border: 1px solid var(--border); border-radius: 16px;
+  width: 100%; max-width: 700px; padding: 22px;
+}
+.editorHeader {
+  display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px;
+}
+.editorTitle { font-family: 'Bebas Neue'; font-size: 22px; letter-spacing: 1px; color: var(--orange); }
+
+.editorSaveBtn {
+  background: var(--orange); color: white; border: none; border-radius: 7px;
+  padding: 7px 16px; font-family: 'DM Sans', sans-serif; font-size: 12px;
+  font-weight: 600; cursor: pointer; transition: opacity .15s;
+}
+.editorSaveBtn:hover { opacity: .85; }
+
+.editorResetBtn {
+  background: transparent; color: var(--muted2); border: 1px solid var(--border);
+  border-radius: 7px; padding: 7px 14px; font-family: 'DM Sans', sans-serif;
+  font-size: 12px; cursor: pointer; transition: border-color .15s;
+}
+.editorResetBtn:hover { border-color: #ef4444; color: #ef4444; }
+
+.editorCloseBtn {
+  background: transparent; color: var(--muted); border: 1px solid var(--border);
+  border-radius: 7px; padding: 7px 12px; font-size: 12px; cursor: pointer;
+}
+.editorCloseBtn:hover { color: var(--text); }
+
+.editorList { display: flex; flex-direction: column; gap: 6px; max-height: 60vh; overflow-y: auto; }
+
+.editorRow {
+  background: #1c1c1c; border: 1px solid var(--border); border-radius: 9px;
+  padding: 10px 12px; display: flex; align-items: center; justify-content: space-between; gap: 10px;
+}
+.editorRowMeta { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; flex-wrap: wrap; }
+.editorRowDate  { font-family: 'Space Mono'; font-size: 11px; color: var(--muted); flex-shrink: 0; }
+.editorRowType  { font-size: 11px; font-weight: 600; flex-shrink: 0; }
+.editorRowTitle { font-size: 12px; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.editorRowPace  { font-family: 'Space Mono'; font-size: 11px; color: var(--muted2); flex-shrink: 0; }
+
+.editorEditBtn {
+  background: transparent; border: 1px solid var(--border); border-radius: 6px;
+  color: var(--muted2); padding: 4px 9px; font-size: 13px; cursor: pointer; flex-shrink: 0;
+}
+.editorEditBtn:hover { color: var(--orange); border-color: var(--orange); }
+
+.editorDeleteBtn {
+  background: transparent; border: 1px solid var(--border); border-radius: 6px;
+  color: var(--muted); padding: 4px 9px; font-size: 11px; cursor: pointer; flex-shrink: 0;
+}
+.editorDeleteBtn:hover { color: #ef4444; border-color: #ef4444; }
+
+.editorForm { display: flex; flex-direction: column; gap: 8px; width: 100%; padding: 4px 0; }
+.editorFormRow { display: grid; grid-template-columns: 140px 1fr; align-items: center; gap: 8px; }
+.editorFormRow label { font-size: 11px; color: var(--muted2); }
+.editorFormRow input, .editorFormRow select {
+  background: #111; border: 1px solid #333; border-radius: 6px; color: var(--text);
+  font-family: 'DM Sans', sans-serif; font-size: 12px; padding: 6px 10px; outline: none; width: 100%;
+}
+.editorFormRow input:focus, .editorFormRow select:focus { border-color: var(--orange); }
+
+.editorAddBtn {
+  margin-top: 12px; width: 100%; background: transparent; border: 1px dashed var(--border);
+  border-radius: 9px; padding: 10px; color: var(--muted2); font-size: 12px;
+  font-family: 'DM Sans', sans-serif; cursor: pointer; transition: border-color .15s, color .15s;
+}
+.editorAddBtn:hover { border-color: var(--orange); color: var(--orange); }
 
 @media (max-width: 700px) {
   .tab { padding: 14px 16px; }

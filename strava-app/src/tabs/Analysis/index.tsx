@@ -1,35 +1,61 @@
 import { useState } from 'react';
 import { useStore } from '../../store/useStore';
 import type { StravaActivity } from '../../types/strava';
-import { actPaceSec, paceSecToStr, fmt } from '../../lib/utils';
-import { TRAINING_PLAN, TYPE_LABELS, TYPE_COLORS, type PlanSession } from '../../lib/trainingPlan';
+import { actPaceSec, paceSecToStr, fmt, buildActivityMap, weekMondayKey } from '../../lib/utils';
+import { TRAINING_PLAN, TYPE_LABELS, TYPE_COLORS, RACE_DATE, RACE_TARGET_MIN, RACE_DIST_KM, type PlanSession } from '../../lib/trainingPlan';
 import LineChart from '../../components/Charts/LineChart';
 import BarChart from '../../components/Charts/BarChart';
 import styles from './Analysis.module.css';
 
-function addDays(dateStr: string, n: number) {
-  const d = new Date(dateStr); d.setDate(d.getDate() + n); return d.toISOString().slice(0, 10);
-}
-
-function matchAct(planDate: string, runs: StravaActivity[]) {
-  for (let offset = 0; offset <= 1; offset++) {
-    const d = addDays(planDate, offset);
-    const found = runs.find(a => a.start_date_local.slice(0, 10) === d);
-    if (found) return found;
-  }
-  return null;
-}
-
-function scoreSession(plan: PlanSession, act: StravaActivity | null) {
+function scoreSession(plan: PlanSession, act: StravaActivity | null): { status: string; emoji: string; note?: string } {
   if (!act) return { status: 'miss', emoji: '❌' };
   const today = new Date().toISOString().slice(0, 10);
   if (plan.date > today) return { status: 'future', emoji: '🔜' };
-  const distPct  = act.distance / 1000 / plan.targetDist;
-  const distOk   = distPct >= 0.85;
-  const paceOk   = ['easy', 'long'].includes(plan.type) ? true : distOk;
-  if (distOk && paceOk) return { status: 'done', emoji: '✅' };
-  if (distPct >= 0.7)   return { status: 'partial', emoji: '⚠️' };
-  return { status: 'miss', emoji: '❌' };
+
+  const distKm  = act.distance / 1000;
+  const distPct = distKm / plan.targetDist;
+
+  if (distPct < 0.65) return { status: 'miss', emoji: '❌', note: 'слишком коротко' };
+  const distOk = distPct >= 0.82;
+
+  // Easy/long: distance is the only criterion
+  if (['easy', 'long'].includes(plan.type)) {
+    return distOk ? { status: 'done', emoji: '✅' } : { status: 'partial', emoji: '⚠️', note: `${fmt(distKm,1)}/${plan.targetDist}км` };
+  }
+
+  if (!distOk) return { status: 'partial', emoji: '⚠️', note: `${fmt(distKm,1)}/${plan.targetDist}км` };
+
+  // Quality sessions — prefer splits_metric (only present after fetchActivityDetail),
+  // then fall back to avg HR, then to weighted-pace heuristic.
+  const splits = act.splits_metric ?? [];
+  if (splits.length > 0) {
+    const needed = plan.type === 'tempo' ? 2 : 1;
+    const fast = splits.filter(s => {
+      const splitPace = s.moving_time / (s.distance / 1000);
+      return splitPace <= plan.targetPaceSec * 1.07;
+    });
+    if (fast.length >= needed) return { status: 'done', emoji: '✅', note: `${fast.length} сплит(а) в темпе` };
+    return { status: 'partial', emoji: '⚠️', note: 'темп ниже цели' };
+  }
+
+  // HR fallback: for a ~9km mixed session, avg HR ≥ 133 reliably indicates quality work
+  const hr = act.average_heartrate;
+  if (hr) {
+    if (hr >= 133) return { status: 'done', emoji: '✅' };
+    if (hr >= 128) return { status: 'partial', emoji: '⚠️', note: `ЧСС ${Math.round(hr)} — умеренно` };
+    return { status: 'partial', emoji: '⚠️', note: `ЧСС ${Math.round(hr)} — легко` };
+  }
+
+  // Pace heuristic: back-calculate quality portion by subtracting expected WU/CD
+  const avgPace = actPaceSec(act);
+  if (avgPace > 0 && distKm > 4) {
+    const wucdKm  = Math.min(3.5, distKm * 0.4);
+    const qualPace = (avgPace * distKm - 420 * wucdKm) / (distKm - wucdKm);
+    if (qualPace <= plan.targetPaceSec * 1.08) return { status: 'done', emoji: '✅' };
+    return { status: 'partial', emoji: '⚠️', note: 'темп ниже цели' };
+  }
+
+  return { status: 'done', emoji: '✅' };
 }
 
 /* ─── AI Analysis ─── */
@@ -84,9 +110,12 @@ export default function AnalysisTab() {
     if (p > 400) distrib.easy++; else if (p > 360) distrib.moderate++; else distrib.hard++;
   });
 
+  // Build activity map once — each run matched to at most one plan session
+  const actMap = buildActivityMap(runs, TRAINING_PLAN);
+
   // Plan vs Fact
   const pvfRows = TRAINING_PLAN.map(plan => {
-    const act   = matchAct(plan.date, runs);
+    const act   = actMap.get(plan.date) ?? null;
     const score = scoreSession(plan, act);
     const actStr = act
       ? `${fmt(act.distance / 1000, 1)}км @ ${paceSecToStr(Math.round(actPaceSec(act)))}/км${act.average_heartrate ? ' ЧСС ' + Math.round(act.average_heartrate) : ''}`
@@ -106,27 +135,23 @@ export default function AnalysisTab() {
     if (plan.date > today) return;
     if (!weekMap[plan.week]) weekMap[plan.week] = { total: 0, done: 0 };
     weekMap[plan.week].total++;
-    const act   = matchAct(plan.date, runs);
+    const act   = actMap.get(plan.date) ?? null;
     const score = scoreSession(plan, act);
     if (score.status === 'done' || score.status === 'partial') weekMap[plan.week].done++;
   });
 
   // Race readiness
-  const RACE_DATE  = '2026-06-27';
-  const raceDate   = new Date(RACE_DATE);
+  const raceDate = new Date(RACE_DATE);
   const todayDate  = new Date(); todayDate.setHours(0, 0, 0, 0);
   const daysToRace = Math.round((raceDate.getTime() - todayDate.getTime()) / 86400000);
 
   const weeklyKm: Record<string, number> = {};
   runs.forEach(a => {
-    const d = new Date(a.start_date_local), mon = new Date(d);
-    mon.setDate(d.getDate() - d.getDay() + 1);
-    const k = mon.toISOString().slice(0, 10);
+    const k = weekMondayKey(a.start_date_local);
     weeklyKm[k] = (weeklyKm[k] || 0) + a.distance / 1000;
   });
   const peakKm = Math.max(0, ...Object.values(weeklyKm));
-  const monThis = new Date(todayDate); monThis.setDate(todayDate.getDate() - todayDate.getDay() + 1);
-  const curWeekKm = weeklyKm[monThis.toISOString().slice(0, 10)] || 0;
+  const curWeekKm = weeklyKm[weekMondayKey(today)] || 0;
   const taperPct  = peakKm > 0 ? Math.round(curWeekKm / peakKm * 100) : 100;
   const taperOk   = taperPct <= 65;
 
@@ -185,12 +210,12 @@ export default function AnalysisTab() {
     `${a.start_date_local.slice(0, 10)} | ${fmt(a.distance / 1000, 1)}км | ${paceSecToStr(Math.round(actPaceSec(a)))}/км${a.average_heartrate ? ' | ЧСС ' + Math.round(a.average_heartrate) : ''}`
   ).reverse().join('\n');
   const planFact = TRAINING_PLAN.filter(p => p.date <= today).map(plan => {
-    const act   = matchAct(plan.date, runs);
+    const act   = actMap.get(plan.date) ?? null;
     const score = scoreSession(plan, act);
     return `${plan.date} ${plan.title}: план ${plan.desc} → ${score.emoji} ${act ? fmt(act.distance / 1000, 1) + 'км @ ' + paceSecToStr(Math.round(actPaceSec(act))) + '/км' : 'пропущено'}`;
   }).join('\n') || '(план ещё не начался)';
 
-  const aiPrompt = `Ты тренер по бегу. Проанализируй подготовку.\n\nЦЕЛЬ: 10 км за 57 минут к 27 июня 2026 (гонка 19 июля).\n\nТЕКУЩИЕ МЕТРИКИ:\n- Лучший темп на 5 км: 5:22/км (ЧСС 153)\n- Ср. темп лёгких (30 дней): ${avgEasyPace ? paceSecToStr(Math.round(avgEasyPace)) : '-'}/км\n- Объём за 30 дней: ${fmt(totalKm30, 0)} км (~${fmt(avgKmWeek, 0)} км/нед)\n- Расчётный 10 км: ${estimated10k ? fmt(estimated10k, 1) + ' мин' : 'нет данных'}\n\nПОСЛЕДНИЕ 30 ПРОБЕЖЕК:\n${runSummary}\n\nПЛАН vs ФАКТ:\n${planFact}\n\nОтветь по-русски:\n### Общая оценка\n### Что идёт хорошо\n### Что вызывает вопросы\n### Ключевые выводы\n### Корректировка плана\nБудь конкретен, давай точные темпы.`;
+  const aiPrompt = `Ты тренер по бегу. Проанализируй подготовку.\n\nЦЕЛЬ: ${RACE_DIST_KM} км за ${RACE_TARGET_MIN} минут к ${RACE_DATE}.\n\nТЕКУЩИЕ МЕТРИКИ:\n- Лучший темп на 5 км: 5:22/км (ЧСС 153)\n- Ср. темп лёгких (30 дней): ${avgEasyPace ? paceSecToStr(Math.round(avgEasyPace)) : '-'}/км\n- Объём за 30 дней: ${fmt(totalKm30, 0)} км (~${fmt(avgKmWeek, 0)} км/нед)\n- Расчётный 10 км: ${estimated10k ? fmt(estimated10k, 1) + ' мин' : 'нет данных'}\n\nПОСЛЕДНИЕ 30 ПРОБЕЖЕК:\n${runSummary}\n\nПЛАН vs ФАКТ:\n${planFact}\n\nОтветь по-русски:\n### Общая оценка\n### Что идёт хорошо\n### Что вызывает вопросы\n### Ключевые выводы\n### Корректировка плана\nБудь конкретен, давай точные темпы.`;
 
   async function runAI() {
     if (!geminiKey) { setAiResult('⚠️ Вставь Gemini API ключ'); return; }
@@ -223,13 +248,13 @@ export default function AnalysisTab() {
           <div className={styles.readinessHeader}>
             <div>
               <div className={styles.readinessTitle}>🏁 Готовность к старту</div>
-              <div style={{ fontSize: 12, color: 'var(--muted)' }}>Контрольный забег 27 июня · {daysToRace} дней</div>
+              <div style={{ fontSize: 12, color: 'var(--muted)' }}>Контрольный забег {new Date(RACE_DATE).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })} · {daysToRace} дней</div>
             </div>
             <div style={{ fontFamily: 'Bebas Neue', fontSize: 40, color: scoreColor }}>{score}%</div>
           </div>
           <div className={styles.readinessItems}>
             {[
-              { ok: daysToRace <= 14, neutral: daysToRace > 14, label: `До старта ${daysToRace} дней`, val: '27 июня 2026' },
+              { ok: daysToRace <= 14, neutral: daysToRace > 14, label: `До старта ${daysToRace} дней`, val: new Date(RACE_DATE).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' }) },
               { ok: taperOk, neutral: false, label: 'Тейпер (снижение объёма)', val: `${taperPct}% от пика${taperOk ? '' : ' — нужно ≤65%'}` },
               { ok: hardOk, neutral: false, label: 'Последняя скоростная', val: lastHard ? `${daysSinceH}д назад` : 'нет' },
               { ok: longOk, neutral: false, label: 'Последний длинный бег', val: lastLong ? `${daysSinceL}д назад` : 'нет' },
@@ -336,7 +361,10 @@ export default function AnalysisTab() {
                 <td style={{ fontSize: 11, color: 'var(--muted)' }}>{plan.desc}</td>
                 <td style={{ fontFamily: 'Space Mono', fontSize: 11 }}>{actStr}</td>
                 <td>{paceDiffEl}</td>
-                <td style={{ textAlign: 'center', fontSize: 16 }}>{score.emoji}</td>
+                <td style={{ textAlign: 'center', fontSize: 14 }}>
+                  {score.emoji}
+                  {score.note && <div style={{ fontSize: 9, color: 'var(--muted)', lineHeight: 1.2, marginTop: 2 }}>{score.note}</div>}
+                </td>
               </tr>
             ))}
           </tbody>

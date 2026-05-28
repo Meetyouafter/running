@@ -1,12 +1,14 @@
+import { useEffect } from 'react';
 import { useStore } from '../../store/useStore';
-import { fetchActivities } from '../../lib/api';
-import { ctype } from '../../lib/utils';
+import { fetchActivities, clearActivityCache } from '../../lib/api';
+import { ctype, weekMondayKey } from '../../lib/utils';
 import type { StravaActivity } from '../../types/strava';
 import FilterBar from './FilterBar';
 import StatsGrid from './StatsGrid';
 import ActivityList from './ActivityList';
 import RacePredictor from './RacePredictor';
 import PersonalRecords from './PersonalRecords';
+import ProgressSection from './ProgressSection';
 import BarChart from '../../components/Charts/BarChart';
 import styles from './Dashboard.module.css';
 
@@ -19,16 +21,17 @@ const PERIOD_OPTIONS = [
 ];
 
 export default function DashboardTab() {
-  const { activities, activeFilter, activeDays, setActiveDays, loading, loadingText, error,
-          setActivities, setLoading, setLoadingText, setError, setActiveFilter } = useStore();
+  const { activities, activeFilter, activeDays, setActiveDays, loading, error,
+          setActivities, setLoading, setError, setActiveFilter } = useStore();
+
+  useEffect(() => { if (!activities.length) loadData(); }, []);
 
   async function loadData(days = activeDays) {
     setLoading(true);
     setError(null);
-    setLoadingText('Подключаюсь к Strava...');
     try {
       const afterTs = days > 0 ? Math.floor((Date.now() - days * 86400000) / 1000) : null;
-      const acts = await fetchActivities(afterTs, (n) => setLoadingText(`Загружаю... ${n} активностей`));
+      const acts = await fetchActivities(afterTs);
       if (!acts.length) { setError('Нет активностей за выбранный период.'); return; }
       setActivities(acts);
       setActiveFilter('all');
@@ -47,22 +50,24 @@ export default function DashboardTab() {
     new Date(b.start_date_local).getTime() - new Date(a.start_date_local).getTime()
   );
 
-  // Weekly km chart
-  const weeklyMap: Record<string, number> = {};
-  sorted.forEach(a => {
-    const d = new Date(a.start_date_local);
-    const mon = new Date(d);
-    mon.setDate(d.getDate() - d.getDay() + 1);
-    const key = mon.toISOString().slice(0, 10);
-    weeklyMap[key] = (weeklyMap[key] || 0) + a.distance / 1000;
+  // Combined weekly km + run count + per-run details (runs only)
+  const weekRunsMap: Record<string, { km: number; count: number; runs: { date: string; km: number }[] }> = {};
+  sorted.filter(a => a.type === 'Run').forEach(a => {
+    const key = weekMondayKey(a.start_date_local);
+    if (!weekRunsMap[key]) weekRunsMap[key] = { km: 0, count: 0, runs: [] };
+    const km = a.distance / 1000;
+    weekRunsMap[key].km    += km;
+    weekRunsMap[key].count += 1;
+    weekRunsMap[key].runs.push({ date: a.start_date_local.slice(0, 10), km });
   });
   const maxBars = activeDays <= 30 ? 6 : activeDays <= 90 ? 13 : activeDays <= 180 ? 26 : 52;
-  let weekKeys = Object.keys(weeklyMap).sort();
+  let weekKeys = Object.keys(weekRunsMap).sort();
   if (weekKeys.length > maxBars) weekKeys = weekKeys.slice(-maxBars);
-  const weekVals = weekKeys.map(k => weeklyMap[k]);
-
-  // HR chart
-  const hrList = sorted.filter(a => a.average_heartrate).slice(0, 30).reverse();
+  const weekKmVals    = weekKeys.map(k => Math.round(weekRunsMap[k].km * 10) / 10);
+  const weekCountVals = weekKeys.map(k => weekRunsMap[k].count);
+  const weekDetails   = weekKeys.map(k => weekRunsMap[k].runs);
+  const totalKmShown  = weekKmVals.reduce((s, v) => s + v, 0);
+  const avgKmPerWeek  = weekKeys.length ? totalKmShown / weekKeys.length : 0;
 
   return (
     <div className={styles.tab}>
@@ -78,15 +83,20 @@ export default function DashboardTab() {
             {opt.label}
           </button>
         ))}
-        <button className="btn" style={{ marginLeft: 'auto' }} onClick={() => loadData()}>
-          {loading ? 'Загружаю...' : 'Загрузить'}
+        <button
+          className={styles.periodBtn}
+          disabled={loading}
+          onClick={() => { clearActivityCache(); loadData(); }}
+          title="Очистить кеш и загрузить заново"
+        >
+          ↺
         </button>
       </div>
 
       {loading && (
         <div className="loading-state">
           <div className="spinner" />
-          {loadingText || 'Загружаю...'}
+          Загружаю активности
         </div>
       )}
 
@@ -102,32 +112,34 @@ export default function DashboardTab() {
       {!loading && activities.length > 0 && (
         <>
           <FilterBar />
+          <ProgressSection activities={sorted} />
           <StatsGrid activities={sorted} />
 
-          <div className="two-col" style={{ marginBottom: 22 }}>
-            <div>
-              <div className="section-title">Км по неделям</div>
+          {weekKeys.length > 0 && (
+            <div style={{ marginBottom: 22 }}>
+              <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 6 }}>
+                <div className="section-title" style={{ margin: 0 }}>Км по неделям</div>
+                <div style={{ fontSize: 11, color: 'var(--muted)', fontFamily: 'Space Mono' }}>
+                  ср.&nbsp;{avgKmPerWeek.toFixed(0)}&nbsp;км/нед
+                </div>
+              </div>
               <div className="chart-container">
                 <BarChart
-                  labels={weekKeys.map(k => k.slice(5))}
-                  data={weekVals}
+                  labels={weekKeys.map(k => {
+                    const [y, m, d] = k.split('-').map(Number);
+                    return new Date(y, m - 1, d).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' });
+                  })}
+                  data={weekKmVals}
+                  counts={weekCountVals}
+                  details={weekDetails}
                   color="#FC4C02"
+                  unit="км"
                   yMin={0}
+                  height={180}
                 />
               </div>
             </div>
-            <div>
-              <div className="section-title">Пульс по активностям</div>
-              <div className="chart-container">
-                <BarChart
-                  labels={hrList.map(a => a.name.slice(0, 8))}
-                  data={hrList.map(a => a.average_heartrate!)}
-                  color="#2979ff"
-                  yMin={60}
-                />
-              </div>
-            </div>
-          </div>
+          )}
 
           <RacePredictor activities={sorted} />
           <PersonalRecords activities={sorted} />

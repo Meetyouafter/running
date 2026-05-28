@@ -5,7 +5,6 @@ import { fmt, dur, pace, hrColor, dateStr, ICONS, paceSecToStr, actPaceSec, deco
 import { TRAINING_PLAN } from '../../../lib/trainingPlan';
 import ProAnalysis from './ProAnalysis';
 import IntervalAnalysis, { detectIntervals } from './IntervalAnalysis';
-import RunAIBlock from './RunAIBlock';
 import LineChart from '../../../components/Charts/LineChart';
 import styles from './Modal.module.css';
 import L from 'leaflet';
@@ -53,13 +52,17 @@ export default function ActivityModal({ activityId, onClose }: Props) {
     return () => { document.removeEventListener('keydown', handler); document.body.style.overflow = ''; };
   }, [onClose]);
 
-  const plan = detail ? (
-    TRAINING_PLAN.find(p => p.date === detail.start_date_local.slice(0, 10)) ||
-    TRAINING_PLAN.find(p => {
-      const d = new Date(p.date); d.setDate(d.getDate() - 1);
-      return d.toISOString().slice(0, 10) === detail.start_date_local.slice(0, 10);
-    })
-  ) : null;
+  const shiftDate = (iso: string, n: number) => {
+    const [y, m, d] = iso.split('-').map(Number);
+    const dt = new Date(y, m - 1, d + n);
+    return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
+  };
+  const plan = detail ? (() => {
+    const actDate = detail.start_date_local.slice(0, 10);
+    return TRAINING_PLAN.find(p => p.date === actDate) ||
+           TRAINING_PLAN.find(p => shiftDate(p.date, -1) === actDate) ||
+           TRAINING_PLAN.find(p => shiftDate(p.date,  1) === actDate);
+  })() : null;
 
   const ivlData = detail?.type === 'Run' ? detectIntervals(streams) : null;
 
@@ -74,8 +77,7 @@ export default function ActivityModal({ activityId, onClose }: Props) {
     { l: 'Ср. каденс',    v: detail.average_cadence ? `${fmt(detail.average_cadence * 2, 0)} шаг/мин` : '—' },
     { l: 'Ср. мощность',  v: detail.average_watts ? `${fmt(detail.average_watts, 0)} W` : '—' },
     { l: 'Калории',        v: detail.calories ? `${detail.calories} ккал` : '—' },
-    { l: 'Suffer Score',   v: String(detail.suffer_score || '—') },
-    { l: 'Температура',    v: detail.average_temp != null ? `${detail.average_temp}°C` : '—' },
+{ l: 'Температура',    v: detail.average_temp != null ? `${detail.average_temp}°C` : '—' },
   ] : [];
 
   const hasHR   = !!streams.heartrate?.data?.length;
@@ -137,7 +139,10 @@ export default function ActivityModal({ activityId, onClose }: Props) {
               <div className={styles.pvf}>
                 <div className={styles.pvfTitle}>📋 {plan.title} · {plan.desc}</div>
                 {(() => {
-                  const ap = actPaceSec(detail);
+                  // For interval workouts compare plan pace against interval avg pace,
+                  // not overall pace (which includes warm-up/cool-down and rest periods)
+                  const isInterval = plan.type === 'interval' && ivlData;
+                  const ap = isInterval ? ivlData!.avgPaceSec : actPaceSec(detail);
                   const distPct  = detail.distance / 1000 / plan.targetDist;
                   const paceDiff = Math.round(ap - plan.targetPaceSec);
                   const distColor = distPct >= 0.9 ? 'var(--green)' : distPct >= 0.75 ? '#eab308' : '#f44336';
@@ -151,7 +156,7 @@ export default function ActivityModal({ activityId, onClose }: Props) {
                         <span style={{ color: distColor, fontFamily: 'Space Mono', fontSize: 11 }}>{Math.round(distPct * 100)}%</span>
                       </div>
                       <div className={styles.pvfRow}>
-                        <span className={styles.pvfLabel}>Темп</span>
+                        <span className={styles.pvfLabel}>Темп{isInterval ? ' (интервалы)' : ''}</span>
                         <span className={styles.pvfPlan}>план {paceSecToStr(plan.targetPaceSec)}/км</span>
                         <span className={styles.pvfFact}>факт {ap ? paceSecToStr(Math.round(ap)) + '/км' : '—'}</span>
                         <span style={{ color: paceColor, fontFamily: 'Space Mono', fontSize: 11 }}>{paceDiff > 0 ? '+' : ''}{paceDiff}с/км</span>
@@ -236,8 +241,6 @@ export default function ActivityModal({ activityId, onClose }: Props) {
               </>
             )}
 
-            {/* AI block */}
-            <RunAIBlock detail={detail} streams={streams} ivl={ivlData} plan={plan ?? null} />
           </>
         )}
       </div>

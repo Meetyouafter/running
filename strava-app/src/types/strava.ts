@@ -51,3 +51,13 @@ export interface StravaStreams {
 }
 
 export type ActivityFilter = 'all' | 'Run' | 'Ride' | 'Walk' | string;
+
+export interface StravaSegmentExplore {
+  id: number;
+  name: string;
+  distance: number;
+  avg_grade: number;
+  start_latlng: [number, number];
+  end_latlng: [number, number];
+  points: string;
+}

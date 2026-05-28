@@ -1,0 +1,585 @@
+.page {
+  display: flex;
+  height: calc(100vh - 62px);
+  overflow: hidden;
+}
+
+/* ── Panel ── */
+.panel {
+  width: 300px;
+  min-width: 300px;
+  overflow-y: auto;
+  border-right: 1px solid var(--border);
+  padding: 20px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.panelTitle {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 22px;
+  letter-spacing: 1px;
+  color: var(--text);
+  margin-bottom: 18px;
+}
+
+/* ── Sections / Steps ── */
+.section {
+  margin-bottom: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.stepLabel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 2px;
+}
+
+.stepNum {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--orange);
+  color: #fff;
+  font-family: 'Space Mono', monospace;
+  font-size: 10px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+/* ── Point buttons ── */
+.pointBtn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: 9px;
+  color: var(--muted2);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  padding: 9px 12px;
+  cursor: pointer;
+  transition: all .15s;
+  text-align: left;
+}
+.pointBtn:hover { border-color: #444; color: var(--text); }
+.pointBtnActive {
+  border-color: var(--orange) !important;
+  color: var(--text) !important;
+  background: var(--orange-dim, rgba(252,76,2,.08)) !important;
+}
+
+.dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* ── Start row with geo button ── */
+.startRow {
+  display: flex;
+  gap: 6px;
+  align-items: stretch;
+}
+
+.pointBtnFlex { flex: 1; }
+
+.geoBtn {
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: 9px;
+  color: var(--muted2);
+  font-size: 16px;
+  width: 38px;
+  min-width: 38px;
+  cursor: pointer;
+  transition: all .15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+.geoBtn:hover:not(:disabled) { border-color: #22c55e; color: #22c55e; }
+.geoBtn:disabled { opacity: .4; cursor: not-allowed; }
+
+/* ── Waypoint ── */
+.wpRow {
+  display: flex;
+  gap: 6px;
+  align-items: stretch;
+}
+
+.addWpBtn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: transparent;
+  border: 1.5px dashed var(--border);
+  border-radius: 9px;
+  color: var(--muted);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: all .15s;
+  text-align: left;
+  width: 100%;
+}
+.addWpBtn:hover { border-color: #eab308; color: #eab308; }
+
+.clearWpBtn {
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: 9px;
+  color: var(--muted2);
+  font-size: 12px;
+  width: 32px;
+  min-width: 32px;
+  cursor: pointer;
+  transition: all .15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+.clearWpBtn:hover { border-color: #ef4444; color: #ef4444; }
+
+/* ── Round-trip toggle ── */
+.toggleRow {
+  display: flex;
+  gap: 6px;
+}
+
+.toggleBtn {
+  flex: 1;
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: 9px;
+  color: var(--muted2);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 7px 8px;
+  cursor: pointer;
+  transition: all .15s;
+  white-space: nowrap;
+}
+.toggleBtn:hover { border-color: #444; color: var(--text); }
+.toggleActive {
+  background: var(--orange-dim, rgba(252,76,2,.1)) !important;
+  border-color: var(--orange) !important;
+  color: var(--orange) !important;
+}
+
+/* ── Distance ── */
+.distRow {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.slider {
+  width: 100%;
+  accent-color: var(--orange);
+  cursor: pointer;
+}
+
+.distInput {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.numInput {
+  width: 64px;
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-family: 'Space Mono', monospace;
+  font-size: 14px;
+  font-weight: 700;
+  padding: 6px 10px;
+  text-align: center;
+  outline: none;
+}
+.numInput:focus { border-color: var(--orange); }
+/* hide spin buttons */
+.numInput::-webkit-inner-spin-button,
+.numInput::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+.numInput[type=number] { -moz-appearance: textfield; }
+
+.unit {
+  font-size: 13px;
+  color: var(--muted2);
+  font-family: 'DM Sans', sans-serif;
+}
+
+/* ── Build button ── */
+.buildBtn {
+  background: var(--orange);
+  border: none;
+  border-radius: 9px;
+  color: #fff;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 17px;
+  letter-spacing: .5px;
+  padding: 11px 18px;
+  cursor: pointer;
+  transition: opacity .15s;
+  width: 100%;
+}
+.buildBtn:hover:not(:disabled) { opacity: .85; }
+.buildBtn:disabled { opacity: .4; cursor: not-allowed; }
+
+/* ── Error ── */
+.error {
+  background: rgba(239,68,68,.1);
+  border: 1px solid rgba(239,68,68,.3);
+  border-radius: 8px;
+  color: #ef4444;
+  font-size: 11px;
+  padding: 8px 10px;
+  line-height: 1.5;
+}
+
+/* ── Route info ── */
+.routeInfo {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.infoRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.infoLabel {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.infoVal {
+  font-family: 'Space Mono', monospace;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+/* ── New route button ── */
+.newBtn {
+  background: transparent;
+  border: 1.5px solid var(--border);
+  border-radius: 9px;
+  color: var(--text);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 9px 14px;
+  cursor: pointer;
+  transition: all .15s;
+  width: 100%;
+}
+.newBtn:hover:not(:disabled) { border-color: var(--orange); color: var(--orange); }
+.newBtn:disabled { opacity: .4; cursor: not-allowed; }
+
+/* ── Export buttons ── */
+.exportRow {
+  display: flex;
+  gap: 8px;
+}
+
+.exportBtn {
+  flex: 1;
+  background: transparent;
+  border: 1.5px solid var(--border);
+  border-radius: 9px;
+  color: var(--muted2);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 8px 10px;
+  cursor: pointer;
+  transition: all .15s;
+  text-align: center;
+}
+.exportBtn:hover { border-color: #3b82f6; color: #3b82f6; }
+
+.garminBtn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1.5px solid var(--border);
+  border-radius: 9px;
+  color: var(--muted2);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 8px 10px;
+  text-decoration: none;
+  transition: all .15s;
+  text-align: center;
+}
+.garminBtn:hover { border-color: #22c55e; color: #22c55e; }
+
+/* ── Hint ── */
+.hint {
+  margin-top: auto;
+  padding-top: 12px;
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.5;
+  min-height: 24px;
+}
+
+/* ── Map ── */
+.mapWrap {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+}
+
+.map {
+  width: 100%;
+  height: 100%;
+}
+
+/* cursor hints */
+.cursorStart .map { cursor: crosshair; }
+.cursorEnd   .map { cursor: crosshair; }
+
+/* ── Tabs ── */
+.tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 18px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 3px;
+}
+
+.tab {
+  flex: 1;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  color: var(--muted2);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 7px 10px;
+  cursor: pointer;
+  transition: all .15s;
+}
+.tab:hover { color: var(--text); }
+.tabActive {
+  background: var(--orange) !important;
+  color: #fff !important;
+}
+
+/* ── Sub-tabs ── */
+.subTabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 14px;
+}
+
+.subTab {
+  flex: 1;
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  color: var(--muted2);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 6px 8px;
+  cursor: pointer;
+  transition: all .15s;
+}
+.subTab:hover { border-color: #444; color: var(--text); }
+.subTabActive {
+  border-color: var(--orange) !important;
+  color: var(--orange) !important;
+  background: var(--orange-dim, rgba(252,76,2,.08)) !important;
+}
+
+/* ── Saved list ── */
+.savedList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.savedItem {
+  width: 100%;
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: 9px;
+  padding: 10px 12px;
+  cursor: pointer;
+  transition: all .15s;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.savedItem:hover { border-color: #444; }
+.savedItemActive {
+  border-color: var(--orange) !important;
+  background: var(--orange-dim, rgba(252,76,2,.06)) !important;
+}
+
+.savedItemName {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.3;
+}
+
+.savedItemMeta {
+  display: flex;
+  gap: 10px;
+  font-family: 'Space Mono', monospace;
+  font-size: 10px;
+  color: var(--muted);
+}
+
+.savedItemActions {
+  display: flex;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.miniExportBtn {
+  flex: 1;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  color: var(--muted2);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 10px;
+  font-weight: 500;
+  padding: 5px 8px;
+  cursor: pointer;
+  transition: all .15s;
+  text-align: center;
+}
+.miniExportBtn:hover { border-color: #3b82f6; color: #3b82f6; }
+
+.miniGarminBtn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  color: var(--muted2);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 10px;
+  font-weight: 500;
+  padding: 5px 8px;
+  text-decoration: none;
+  transition: all .15s;
+}
+.miniGarminBtn:hover { border-color: #22c55e; color: #22c55e; }
+
+/* ── Fetch segments button ── */
+.fetchBtn {
+  background: var(--orange);
+  border: none;
+  border-radius: 9px;
+  color: #fff;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 16px;
+  letter-spacing: .5px;
+  padding: 10px 18px;
+  cursor: pointer;
+  transition: opacity .15s;
+  width: 100%;
+}
+.fetchBtn:hover:not(:disabled) { opacity: .85; }
+.fetchBtn:disabled { opacity: .4; cursor: not-allowed; }
+
+/* ── Section header ── */
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 10px 0 4px;
+  padding-bottom: 5px;
+  border-bottom: 1px solid var(--border);
+}
+
+/* ── Popular controls ── */
+.popularControls {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 2px;
+}
+
+/* ── Filter pills ── */
+.filterPills {
+  display: flex;
+  gap: 4px;
+}
+
+.pill {
+  flex: 1;
+  background: transparent;
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  color: var(--muted2);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 0;
+  cursor: pointer;
+  transition: all .15s;
+  text-transform: none;
+  letter-spacing: 0;
+  text-align: center;
+}
+.pill:hover { border-color: #444; color: var(--text); }
+.pillActive { border-color: var(--orange) !important; color: var(--orange) !important; }
+
+/* ── States ── */
+.loadingBox, .emptyBox {
+  font-size: 12px;
+  color: var(--muted);
+  text-align: center;
+  padding: 20px 12px;
+  line-height: 1.5;
+}

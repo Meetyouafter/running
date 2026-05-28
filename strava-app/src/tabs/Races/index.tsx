@@ -2,17 +2,6 @@ import { useState, useEffect, useCallback } from 'react';
 import type { Race, RaceMark } from '../../types/races';
 import styles from './Races.module.css';
 
-/* ─── Seeded races ─── */
-const SEEDED: Race[] = [
-  { id: 'danang-2026',      name: 'Danang International Marathon', date: '2026-03-22', city: 'Da Nang',          country: 'Vietnam',   countryCode: 'VN', distances: [1.5, 5, 21, 42], url: 'https://rundanang.com/en/', source: 'pre-seeded' },
-  { id: 'ironman-danang',   name: 'Ironman 70.3 Vietnam',          date: '2026-05-10', city: 'Da Nang',          country: 'Vietnam',   countryCode: 'VN', distances: [113], url: 'https://www.ironman.com/im703-vietnam', source: 'pre-seeded', note: 'Triathlon — swim 1.9 / bike 90 / run 21.1' },
-  { id: 'hcmc-2027',        name: 'Ho Chi Minh City Marathon',     date: '2027-01-10', city: 'Ho Chi Minh City', country: 'Vietnam',   countryCode: 'VN', distances: [5, 10, 21, 42], url: 'https://hcmcmarathon.com', source: 'pre-seeded' },
-  { id: 'hanoi-2026',       name: 'Hanoi Marathon',                date: '2026-10-18', city: 'Hanoi',            country: 'Vietnam',   countryCode: 'VN', distances: [5, 10, 21, 42], url: 'https://hanoimarathon.com', source: 'pre-seeded' },
-  { id: 'sapa-trail-2026',  name: 'Vietnam Mountain Marathon',     date: '2026-09-19', city: 'Sa Pa',            country: 'Vietnam',   countryCode: 'VN', distances: [10, 21, 42, 70], url: 'https://vietnammountainmarathon.com', source: 'pre-seeded' },
-  { id: 'bangkok-2026',     name: 'Bangkok Marathon',              date: '2026-11-22', city: 'Bangkok',          country: 'Thailand',  countryCode: 'TH', distances: [10.5, 21, 42], url: 'https://bangkokmarathon.com', source: 'pre-seeded' },
-  { id: 'singapore-2026',   name: 'Singapore Marathon',            date: '2026-12-06', city: 'Singapore',        country: 'Singapore', countryCode: 'SG', distances: [5, 10, 21, 42], url: 'https://singaporemarathon.com', source: 'pre-seeded' },
-  { id: 'tokyo-2027',       name: 'Tokyo Marathon',                date: '2027-03-07', city: 'Tokyo',            country: 'Japan',     countryCode: 'JP', distances: [42], url: 'https://www.marathon.tokyo/en/', source: 'pre-seeded' },
-];
 
 /* ─── Helpers ─── */
 function loadStorage(): { marks: Record<string, RaceMark>; customs: Race[] } {
@@ -104,11 +93,91 @@ const DIST_OPTIONS = [
   { label: '100 км', val: 100 },
 ];
 
+/* ─── ActiUp slug helpers ─── */
+
+const BRAND_MAP: Record<string, string> = {
+  vpbank: 'VPBank', vtv: 'VTV', hsbc: 'HSBC', tvb: 'TVB', aeon: 'AEON',
+  lpbank: 'LPBank', hcmc: 'HCMC', vib: 'VIB', acb: 'ACB', mb: 'MB',
+};
+
+function slugToName(slug: string): string {
+  return slug
+    .replace(/-(\d+)(st|nd|rd|th)-/g, '-$1$2-')
+    .split('-')
+    .filter(w => w.length > 0)
+    .map(w => BRAND_MAP[w.toLowerCase()] ?? (w.charAt(0).toUpperCase() + w.slice(1)))
+    .join(' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+const CITY_PATTERNS: [RegExp, string][] = [
+  [/hanoi|ha-noi|ha noi/i,               'Hanoi'],
+  [/ho-chi-minh|hochiminh|hcmc/i,        'Ho Chi Minh City'],
+  [/da-nang|danang/i,                     'Da Nang'],
+  [/hoi-an|hoian/i,                       'Hoi An'],
+  [/nha-trang|nhatrang/i,                 'Nha Trang'],
+  [/\bhue\b/i,                            'Hue'],
+  [/phu-quoc|phuquoc/i,                   'Phu Quoc'],
+  [/da-lat|dalat/i,                       'Da Lat'],
+  [/quang-tri|quangtri/i,                 'Quang Tri'],
+  [/hai-phong|haiphong/i,                 'Hai Phong'],
+  [/sa-pa|sapa/i,                         'Sa Pa'],
+  [/cao-bang|caobang/i,                   'Cao Bang'],
+  [/ha-long|halong/i,                     'Ha Long'],
+  [/gia-lai/i,                            'Gia Lai'],
+  [/buon-ma-thuot/i,                      'Buon Ma Thuot'],
+  [/lang-son/i,                           'Lang Son'],
+  [/mekong/i,                             'Mekong Delta'],
+  [/phong-nha/i,                          'Phong Nha'],
+  [/trang-an/i,                           'Trang An'],
+  [/sam-son/i,                            'Sam Son'],
+  [/cu-chi/i,                             'Cu Chi'],
+  [/yen-tu/i,                             'Yen Tu'],
+  [/cat-tien/i,                           'Cat Tien'],
+  [/cuc-phuong/i,                         'Cuc Phuong'],
+  [/ly-son/i,                             'Ly Son'],
+  [/lam-dong|lamdong/i,                   'Lam Dong'],
+  [/dak-lak|daklak/i,                     'Dak Lak'],
+  [/phu-thuan/i,                          'Phu Thuan'],
+  [/kon-ka-kinh/i,                        'Kon Ka Kinh'],
+];
+
+function detectCity(slug: string): string {
+  for (const [re, city] of CITY_PATTERNS) {
+    if (re.test(slug)) return city;
+  }
+  return 'Vietnam';
+}
+
+function detectDistances(slug: string): number[] {
+  const s = slug.toLowerCase();
+  if (/ultra/.test(s))                        return [70];
+  if (/half.marathon|half-marathon/.test(s))  return [21];
+  if (/\bmarathon\b/.test(s) && !/half/.test(s)) return [42];
+  if (/ekiden/.test(s))                       return [42];
+  if (/\b10k\b|\b10km\b/.test(s))            return [10];
+  if (/\b5k\b|\b5km\b/.test(s))              return [5];
+  if (/trail/.test(s))                        return [21, 42];
+  return [];
+}
+
+const RUNNING_CAT_IDS = new Set([1, 2, 4]);
+const RUNNING_SLUG_RE  = /run|marathon|trail|sprint|chay|ekiden/i;
+const EXCLUDE_SLUG_RE  = /aqua.warrior|kayak|ironkids|swim|archery/i;
+
+function isRunningEvent(ev: Record<string, unknown>): boolean {
+  const slug = String(ev.event_slug || '');
+  if (EXCLUDE_SLUG_RE.test(slug)) return false;
+  const catIds = ((ev.categories || []) as { cat_id: number }[]).map(c => c.cat_id);
+  return catIds.some(id => RUNNING_CAT_IDS.has(id)) || RUNNING_SLUG_RE.test(slug);
+}
+
 /* ─── Component ─── */
 export default function RacesTab() {
   const { marks: savedMarks, customs } = loadStorage();
 
-  const [races,     setRaces]    = useState<Race[]>(() => [...SEEDED, ...customs]);
+  const [races,     setRaces]    = useState<Race[]>(() => [...customs]);
   const [marks,     setMarks]    = useState<Record<string, RaceMark>>(savedMarks);
   const [distFlt,   setDistFlt]  = useState('all');
   const [regionFlt, setRegionFlt] = useState('all');
@@ -131,50 +200,47 @@ export default function RacesTab() {
   }, []);
 
   async function loadActiup() {
-    const urls = [
-      'https://api.actiup.net/v2/content/event/homepage?event_type=sports&event_category_id=&limit=50',
-    ];
-    let added = 0;
-    for (const url of urls) {
-      try {
-        const res = await fetch(url, {
-          headers: { Accept: 'application/json', Origin: 'https://actiup.net', Referer: 'https://actiup.net/' },
-        });
-        if (!res.ok) continue;
-        const data = await res.json() as Record<string, unknown>;
-        const items = (data.data || data.items || data.results || []) as Record<string, unknown>[];
-        const today = new Date();
-        items.forEach(ev => {
-          const id = 'actiup-' + String(ev.id || ev._id || ev.slug || Math.random());
-          const date = String(ev.start_date || ev.date || '').slice(0, 10);
-          if (!date || new Date(date) < today) return;
-          setRaces(prev => {
-            if (prev.find(r => r.id === id)) return prev;
-            added++;
-            const name = String(ev.name || ev.title || '—');
-            const dists: number[] = [];
-            const cats = ((ev.categories || ev.distances || []) as Record<string, string>[]);
-            cats.forEach(c => {
-              const lbl = (c.name || c.label || '').toLowerCase();
-              if (lbl.includes('42') || (lbl.includes('marathon') && !lbl.includes('half'))) dists.push(42);
-              else if (lbl.includes('21') || lbl.includes('half')) dists.push(21);
-              else if (lbl.includes('10')) dists.push(10);
-              else if (lbl.includes('5')) dists.push(5);
-            });
-            return [...prev, {
-              id, name, date,
-              city: String(ev.city || ev.location || ''),
-              country: String(ev.country || 'Vietnam'),
-              countryCode: 'VN',
-              distances: dists,
-              url: String(ev.url || ev.link || ''),
-              source: 'actiup',
-            }];
-          });
-        });
-      } catch { /* CORS or network error – silently ignore */ }
+    const URL = 'https://api.actiup.net/v2/content/event/homepage?event_type=sports&limit=100&page=1';
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+
+    let items: Record<string, unknown>[] = [];
+    try {
+      const res = await fetch(URL, { headers: { Accept: 'application/json' } });
+      if (!res.ok) return;
+      const data = await res.json() as { result?: Record<string, unknown>[] };
+      items = data.result ?? [];
+    } catch { return; }
+
+    const seenSlugs = new Set<string>();
+    const collected: Race[] = [];
+    for (const ev of items) {
+      const slug = String(ev.event_slug || '');
+      const date = String(ev.start_date || '').slice(0, 10);
+      if (!slug || !date || new Date(date) < today) continue;
+      if (!isRunningEvent(ev)) continue;
+      if (seenSlugs.has(slug)) continue;
+      seenSlugs.add(slug);
+      collected.push({
+        id: 'actiup-' + slug,
+        name: slugToName(slug),
+        date,
+        city: detectCity(slug),
+        country: 'Vietnam',
+        countryCode: 'VN',
+        distances: detectDistances(slug),
+        url: `https://actiup.net/en/event/${slug}`,
+        source: 'actiup',
+      });
     }
-    if (added > 0) setLoadStatus(`✅ ActiUp: +${added} событий`);
+
+    if (collected.length === 0) return;
+    setRaces(prev => {
+      const existingIds = new Set(prev.map(r => r.id));
+      const newOnes = collected.filter(r => !existingIds.has(r.id));
+      if (newOnes.length === 0) return prev;
+      setLoadStatus(`✅ ActiUp: +${newOnes.length} событий`);
+      return [...prev, ...newOnes];
+    });
   }
 
   const updateMarks = useCallback((next: Record<string, RaceMark>) => {

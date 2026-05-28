@@ -1,17 +1,35 @@
 import { create } from 'zustand';
 import type { StravaActivity, ActivityFilter } from '../types/strava';
+import type { PlanSession } from '../lib/trainingPlan';
+import { TRAINING_PLAN } from '../lib/trainingPlan';
 
-type Tab = 'dashboard' | 'plan' | 'analysis' | 'intervals' | 'races';
+const PLAN_KEY = 'custom_training_plan';
+
+function loadPlan(): PlanSession[] {
+  try {
+    const raw = localStorage.getItem(PLAN_KEY);
+    return raw ? (JSON.parse(raw) as PlanSession[]) : TRAINING_PLAN;
+  } catch { return TRAINING_PLAN; }
+}
+
+export function savePlan(plan: PlanSession[]) {
+  try { localStorage.setItem(PLAN_KEY, JSON.stringify(plan)); } catch { /* quota */ }
+}
+
+export function isDefaultPlan(plan: PlanSession[]): boolean {
+  return JSON.stringify(plan) === JSON.stringify(TRAINING_PLAN);
+}
 
 interface AppStore {
   // data
   activities: StravaActivity[];
   setActivities: (acts: StravaActivity[]) => void;
 
-  // ui
-  activeTab: Tab;
-  setActiveTab: (tab: Tab) => void;
+  plan: PlanSession[];
+  setPlan: (plan: PlanSession[]) => void;
+  resetPlan: () => void;
 
+  // ui
   activeFilter: ActivityFilter;
   setActiveFilter: (f: ActivityFilter) => void;
 
@@ -32,8 +50,9 @@ export const useStore = create<AppStore>((set) => ({
   activities:    [],
   setActivities: (acts) => set({ activities: acts }),
 
-  activeTab:    'dashboard',
-  setActiveTab: (tab) => set({ activeTab: tab }),
+  plan:      loadPlan(),
+  setPlan:   (plan) => { savePlan(plan); set({ plan }); },
+  resetPlan: ()     => { savePlan(TRAINING_PLAN); set({ plan: TRAINING_PLAN }); },
 
   activeFilter:    'all',
   setActiveFilter: (f) => set({ activeFilter: f }),

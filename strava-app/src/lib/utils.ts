@@ -1,4 +1,5 @@
 import type { StravaActivity } from '../types/strava';
+import type { PlanSession } from './trainingPlan';
 
 export const ICONS: Record<string, string> = {
   Run: '🏃', Ride: '🚴', VirtualRide: '🚴', Walk: '🚶', Swim: '🏊',
@@ -44,7 +45,8 @@ export function dur(s: number): string {
 }
 
 export function dateStr(iso: string): string {
-  return new Date(iso).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', year: 'numeric' });
+  const [y, m, d] = iso.slice(0, 10).split('-').map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
 export function hrColor(hr?: number | null): string {
@@ -59,10 +61,36 @@ export function escHtml(s: string): string {
   return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
-export function addDays(dateStr: string, n: number): string {
-  const d = new Date(dateStr);
-  d.setDate(d.getDate() + n);
-  return d.toISOString().slice(0, 10);
+export function weekMondayKey(isoLocal: string): string {
+  const [y, m, d] = isoLocal.slice(0, 10).split('-').map(Number);
+  const dt = new Date(y, m - 1, d);
+  const mon = new Date(y, m - 1, d - (dt.getDay() + 6) % 7);
+  return `${mon.getFullYear()}-${String(mon.getMonth() + 1).padStart(2, '0')}-${String(mon.getDate()).padStart(2, '0')}`;
+}
+
+export function addDays(iso: string, n: number): string {
+  const [y, m, d] = iso.slice(0, 10).split('-').map(Number);
+  const dt = new Date(y, m - 1, d + n);
+  return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
+}
+
+export function buildActivityMap(runs: StravaActivity[], sessions: PlanSession[]): Map<string, StravaActivity> {
+  const sorted = [...sessions].sort((a, b) => a.date.localeCompare(b.date));
+  const usedIds = new Set<number>();
+  const map = new Map<string, StravaActivity>();
+
+  for (const p of sorted) {
+    const found = runs.find(a => !usedIds.has(a.id) && a.start_date_local.slice(0, 10) === p.date);
+    if (found) { map.set(p.date, found); usedIds.add(found.id); }
+  }
+  for (const p of sorted) {
+    if (map.has(p.date)) continue;
+    for (const off of [-1, 1]) {
+      const found = runs.find(a => !usedIds.has(a.id) && a.start_date_local.slice(0, 10) === addDays(p.date, off));
+      if (found) { map.set(p.date, found); usedIds.add(found.id); break; }
+    }
+  }
+  return map;
 }
 
 export function decodePolyline(enc: string): [number, number][] {

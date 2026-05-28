@@ -1,3 +1,9 @@
+// ─── Single source of truth for the race goal ────────────────────────────
+export const RACE_DATE            = '2026-07-19';
+export const RACE_DIST_KM         = 10;
+export const RACE_TARGET_MIN      = 57;
+export const RACE_TARGET_PACE_SEC = Math.round(RACE_TARGET_MIN * 60 / RACE_DIST_KM); // 342 = 5:42/km
+
 export interface PlanSession {
   date: string;
   week: number;
@@ -16,9 +22,9 @@ export const TRAINING_PLAN: PlanSession[] = [
   { date: '2026-05-25', week: 1, type: 'long',     title: 'Длинный лёгкий',        targetDist: 14, targetPaceSec: 435, desc: '14 км @ 7:15/км' },
   // Неделя 2
   { date: '2026-05-26', week: 2, type: 'interval', title: 'Интервалы 5×1000м',    targetDist: 11, targetPaceSec: 333, desc: '5×1000м @ 5:33/км' },
-  { date: '2026-05-27', week: 2, type: 'easy',     title: 'Лёгкий бег',           targetDist: 6,  targetPaceSec: 450, desc: '6 км @ 7:30/км' },
-  { date: '2026-05-28', week: 2, type: 'tempo',    title: 'Темп 4 км',             targetDist: 8,  targetPaceSec: 375, desc: '4 км @ 6:15/км' },
-  { date: '2026-06-01', week: 2, type: 'long',     title: 'Длинный с финишем',     targetDist: 12, targetPaceSec: 420, desc: '12 км @ 7:00/км' },
+  { date: '2026-05-27', week: 2, type: 'easy',     title: 'Лёгкий бег',           targetDist: 8,  targetPaceSec: 450, desc: '8 км @ 7:30/км' },
+  { date: '2026-05-28', week: 2, type: 'tempo',    title: 'Темп 5 км',             targetDist: 10, targetPaceSec: 375, desc: '5 км @ 6:15/км' },
+  { date: '2026-06-01', week: 2, type: 'long',     title: 'Длинный с финишем',     targetDist: 14, targetPaceSec: 435, desc: '14 км @ 7:15/км' },
   // Неделя 3
   { date: '2026-06-02', week: 3, type: 'interval', title: 'Интервалы 6×1000м',    targetDist: 12, targetPaceSec: 330, desc: '6×1000м @ 5:30/км' },
   { date: '2026-06-03', week: 3, type: 'easy',     title: 'Лёгкий',               targetDist: 6,  targetPaceSec: 440, desc: '6 км @ 7:20/км' },

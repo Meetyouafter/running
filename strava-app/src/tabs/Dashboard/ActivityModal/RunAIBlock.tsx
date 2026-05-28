@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { StravaActivity, StravaStreams } from '../../../types/strava';
 import type { PlanSession } from '../../../lib/trainingPlan';
+import { RACE_DATE, RACE_DIST_KM, RACE_TARGET_MIN } from '../../../lib/trainingPlan';
 import type { IvlData } from './IntervalAnalysis';
 import { fmt, dur, pace, paceSecToStr } from '../../../lib/utils';
 import styles from './RunAIBlock.module.css';
@@ -65,7 +66,7 @@ export default function RunAIBlock({ detail, streams, ivl, plan }: Props) {
       : '(вне плана)\n';
 
     const prompt =
-      `Ты тренер по бегу. Дай детальный анализ пробежки.\n\nПРОБЕЖКА: ${detail.name}\nДата: ${detail.start_date_local.slice(0,10)}\nДистанция: ${fmt(detail.distance/1000,2)} км\nВремя: ${dur(detail.moving_time)}\nСредний темп: ${pace(detail.average_speed)}/км\nЧСС средняя: ${detail.average_heartrate ? Math.round(detail.average_heartrate)+' bpm' : 'нет'}\nЧСС макс: ${detail.max_heartrate || 'нет'}\nКалории: ${detail.calories || 'нет'}\nНабор высоты: ${fmt(detail.total_elevation_gain,0)} м\n${decoupText}${cadText}${ivlText}\n${planText}\n${splitsText}\nЦЕЛЬ: 10 км за 57 минут к 27 июня 2026.\n\nОтветь структурированно по-русски:\n### Общая оценка\n### Что хорошо\n### Что улучшить\n### Сравнение с планом\n### Рекомендации на следующую тренировку\n${ivl ? '### Анализ интервалов\n' : ''}Будь конкретен, давай точные значения.`;
+      `Ты тренер по бегу. Дай детальный анализ пробежки.\n\nПРОБЕЖКА: ${detail.name}\nДата: ${detail.start_date_local.slice(0,10)}\nДистанция: ${fmt(detail.distance/1000,2)} км\nВремя: ${dur(detail.moving_time)}\nСредний темп: ${pace(detail.average_speed)}/км\nЧСС средняя: ${detail.average_heartrate ? Math.round(detail.average_heartrate)+' bpm' : 'нет'}\nЧСС макс: ${detail.max_heartrate || 'нет'}\nКалории: ${detail.calories || 'нет'}\nНабор высоты: ${fmt(detail.total_elevation_gain,0)} м\n${decoupText}${cadText}${ivlText}\n${planText}\n${splitsText}\nЦЕЛЬ: ${RACE_DIST_KM} км за ${RACE_TARGET_MIN} минут к ${RACE_DATE}.\n\nОтветь структурированно по-русски:\n### Общая оценка\n### Что хорошо\n### Что улучшить\n### Сравнение с планом\n### Рекомендации на следующую тренировку\n${ivl ? '### Анализ интервалов\n' : ''}Будь конкретен, давай точные значения.`;
 
     try {
       const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${key}`, {

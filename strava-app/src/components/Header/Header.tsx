@@ -1,17 +1,16 @@
-import { useStore } from '../../store/useStore';
+import { NavLink } from 'react-router-dom';
 import styles from './Header.module.css';
 
 const TABS = [
-  { id: 'dashboard' as const, label: '📊 Дашборд' },
-  { id: 'plan'      as const, label: '🏃 План' },
-  { id: 'analysis'  as const, label: '📈 Анализ' },
-  { id: 'intervals' as const, label: '⚡ Intervals' },
-  { id: 'races'     as const, label: '🏁 Забеги' },
+  { path: '/',          icon: '📊', label: 'Дашборд' },
+  { path: '/plan',      icon: '🗓', label: 'План' },
+  { path: '/analysis',  icon: '📈', label: 'Анализ' },
+{ path: '/races',     icon: '🏁', label: 'Забеги' },
+  { path: '/coach',     icon: '🤖', label: 'Тренер' },
+  { path: '/route',     icon: '🗺', label: 'Маршрут' },
 ];
 
 export default function Header() {
-  const { activeTab, setActiveTab } = useStore();
-
   return (
     <header className={styles.header}>
       <div className={styles.logo}>
@@ -23,13 +22,17 @@ export default function Header() {
       </div>
       <nav className={styles.nav}>
         {TABS.map(tab => (
-          <button
-            key={tab.id}
-            className={`${styles.tabBtn} ${activeTab === tab.id ? styles.active : ''}`}
-            onClick={() => setActiveTab(tab.id)}
+          <NavLink
+            key={tab.path}
+            to={tab.path}
+            end={tab.path === '/'}
+            className={({ isActive }) =>
+              `${styles.tabBtn} ${isActive ? styles.active : ''}`
+            }
           >
-            {tab.label}
-          </button>
+            <span className={styles.tabIcon}>{tab.icon}</span>
+            <span className={styles.tabLabel}>{tab.label}</span>
+          </NavLink>
         ))}
       </nav>
     </header>
