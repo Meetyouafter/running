@@ -1,7 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useStore } from '../../store/useStore';
 import { isDefaultPlan } from '../../store/useStore';
-import type { StravaActivity } from '../../types/strava';
 import { actPaceSec, paceSecToStr, fmt, buildActivityMap } from '../../lib/utils';
 import { TRAINING_PLAN, TYPE_LABELS, TYPE_COLORS, RACE_DATE, RACE_TARGET_MIN } from '../../lib/trainingPlan';
 import type { PlanSession } from '../../lib/trainingPlan';
