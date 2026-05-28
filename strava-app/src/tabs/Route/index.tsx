@@ -3,6 +3,7 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import styles from './index.module.css';
 import { fetchSegmentsExplore } from '../../lib/api';
+import { useStore } from '../../store/useStore';
 import type { StravaSegmentExplore } from '../../types/strava';
 
 type LatLng = [number, number];
@@ -124,6 +125,11 @@ const WP_ICON = L.divIcon({
 });
 
 export default function RoutePage() {
+  const { activities } = useStore();
+  const myRuns = activities.filter(
+    a => (a.sport_type ?? a.type) === 'Run' && a.map?.summary_polyline,
+  );
+
   const mapRef         = useRef<L.Map | null>(null);
   const startMarkerRef = useRef<L.Marker | null>(null);
   const endMarkerRef   = useRef<L.Marker | null>(null);
@@ -158,8 +164,10 @@ export default function RoutePage() {
   // OSM routes
   const [osmRoutes,   setOsmRoutes]   = useState<OSMRoute[] | null>(null);
   const [osmLoading,  setOsmLoading]  = useState(false);
-  const [osmError,    setOsmError]    = useState<string | null>(null);
   const [activeOsmId, setActiveOsmId] = useState<number | null>(null);
+
+  // my runs
+  const [activeMyRunId, setActiveMyRunId] = useState<number | null>(null);
 
   // init map once
   useEffect(() => {
@@ -264,6 +272,19 @@ export default function RoutePage() {
     endMarkerRef.current?.remove(); endMarkerRef.current = null;
     setActiveOsmId(r.id);
     setActiveSegId(null);
+    setActiveMyRunId(null);
+  }
+
+  function selectMyRun(id: number, polyline: string) {
+    if (activeMyRunId === id) return;
+    const coords = decodePolyline(polyline);
+    if (coords.length < 2) return;
+    drawPolyline(coords, '#FC4C02');
+    startMarkerRef.current?.remove(); startMarkerRef.current = null;
+    endMarkerRef.current?.remove(); endMarkerRef.current = null;
+    setActiveMyRunId(id);
+    setActiveOsmId(null);
+    setActiveSegId(null);
   }
 
   async function fetchPopular() {
@@ -274,7 +295,7 @@ export default function RoutePage() {
     const ne: [number, number] = [b.getNorth(), b.getEast()];
 
     setSegLoading(true); setSegError(null);
-    setOsmLoading(true); setOsmError(null);
+    setOsmLoading(true);
 
     fetchSegmentsExplore(sw[0], sw[1], ne[0], ne[1])
       .then(setSegments)
@@ -283,7 +304,7 @@ export default function RoutePage() {
 
     fetchOSMRoutes(sw[0], sw[1], ne[0], ne[1])
       .then(setOsmRoutes)
-      .catch(e => setOsmError(String(e)))
+      .catch(() => setOsmRoutes([]))
       .finally(() => setOsmLoading(false));
   }
 
@@ -547,23 +568,42 @@ export default function RoutePage() {
               </div>
             </div>
 
-            {/* OSM routes */}
-            <div className={styles.sectionHeader}>Маршруты (OSM)</div>
-            {osmLoading && <div className={styles.loadingBox}>Загрузка...</div>}
-            {osmError && <div className={styles.error}>{osmError}</div>}
-            {osmRoutes && osmRoutes.filter(r => r.distanceM >= segMinKm * 1000).length === 0 && !osmLoading && (
-              <div className={styles.emptyBox}>Маршрутов не найдено</div>
+            {/* My runs */}
+            <div className={styles.sectionHeader}>Мои пробежки</div>
+            {myRuns.length === 0 && (
+              <div className={styles.emptyBox}>Нет пробежек</div>
             )}
-            {osmRoutes?.filter(r => r.distanceM >= segMinKm * 1000).map(r => (
+            {myRuns.filter(a => a.distance >= segMinKm * 1000).map(a => (
               <button
-                key={r.id}
-                className={`${styles.savedItem} ${activeOsmId === r.id ? styles.savedItemActive : ''}`}
-                onClick={() => selectOSMRoute(r)}
+                key={a.id}
+                className={`${styles.savedItem} ${activeMyRunId === a.id ? styles.savedItemActive : ''}`}
+                onClick={() => selectMyRun(a.id, a.map!.summary_polyline!)}
               >
-                <div className={styles.savedItemName}>{r.name}</div>
-                <div className={styles.savedItemMeta}><span>{fmtDist(r.distanceM)}</span></div>
+                <div className={styles.savedItemName}>{a.name}</div>
+                <div className={styles.savedItemMeta}>
+                  <span>{fmtDist(a.distance)}</span>
+                  <span>{new Date(a.start_date_local).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })}</span>
+                </div>
               </button>
             ))}
+
+            {/* OSM routes — shown only when loading or results exist */}
+            {(osmLoading || (osmRoutes && osmRoutes.filter(r => r.distanceM >= segMinKm * 1000).length > 0)) && (
+              <>
+                <div className={styles.sectionHeader}>Маршруты (OSM)</div>
+                {osmLoading && <div className={styles.loadingBox}>Загрузка...</div>}
+                {osmRoutes?.filter(r => r.distanceM >= segMinKm * 1000).map(r => (
+                  <button
+                    key={r.id}
+                    className={`${styles.savedItem} ${activeOsmId === r.id ? styles.savedItemActive : ''}`}
+                    onClick={() => selectOSMRoute(r)}
+                  >
+                    <div className={styles.savedItemName}>{r.name}</div>
+                    <div className={styles.savedItemMeta}><span>{fmtDist(r.distanceM)}</span></div>
+                  </button>
+                ))}
+              </>
+            )}
 
             {/* Strava segments */}
             <div className={styles.sectionHeader}>Сегменты (Strava)</div>
