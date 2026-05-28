@@ -1,16 +1,3 @@
-import { json, readJson, requireEnv } from '../_utils';
-
-export const runtime = 'nodejs';
-
-interface RouteRequestBody {
-  start: [number, number];
-  end?: [number, number];
-  distanceM: number;
-  roundTrip: boolean;
-  seed: number;
-  waypoint?: [number, number];
-}
-
 function haversineM(a: [number, number], b: [number, number]): number {
   const radius = 6_371_000;
   const phi1 = a[0] * Math.PI / 180;
@@ -62,6 +49,10 @@ function detourWaypoint(
   ];
 }
 
+function errorJson(response: any, status: number, error: string, extra?: Record<string, unknown>) {
+  return response.status(status).json({ error, ...extra });
+}
+
 async function callORS(key: string, body: Record<string, unknown>): Promise<Response> {
   return fetch('https://api.openrouteservice.org/v2/directions/foot-walking/geojson', {
     method: 'POST',
@@ -74,28 +65,54 @@ async function callORS(key: string, body: Record<string, unknown>): Promise<Resp
   });
 }
 
-export async function POST(request: Request): Promise<Response> {
+export default async function handler(request: any, response: any) {
+  if (request.method !== 'POST') {
+    response.setHeader('Allow', 'POST');
+    return errorJson(response, 405, 'Method Not Allowed');
+  }
+
+  const key = process.env.ORS_API_KEY;
+  if (!key) {
+    return errorJson(response, 500, 'ORS_API_KEY is not set');
+  }
+
   try {
-    const key = requireEnv('ORS_API_KEY');
-    const { start, end, distanceM, roundTrip, seed, waypoint } = await readJson<RouteRequestBody>(request);
+    const body = typeof request.body === 'string'
+      ? JSON.parse(request.body)
+      : (request.body ?? {});
+
+    const { start, end, distanceM, roundTrip, seed, waypoint } = body as {
+      start: [number, number];
+      end?: [number, number];
+      distanceM: number;
+      roundTrip: boolean;
+      seed: number;
+      waypoint?: [number, number];
+    };
+
+    if (!start || !Array.isArray(start) || start.length !== 2) {
+      return errorJson(response, 400, 'start is required');
+    }
 
     if (waypoint) {
       const finalPt = roundTrip ? start : end;
       if (!finalPt) {
-        return json({ error: 'end is required when roundTrip is false' }, { status: 400 });
+        return errorJson(response, 400, 'end is required when roundTrip is false');
       }
 
-      const coords = [
-        [start[1], start[0]],
-        [waypoint[1], waypoint[0]],
-        [finalPt[1], finalPt[0]],
-      ];
-      const resp = await callORS(key, { coordinates: coords });
-      const text = await resp.text();
-      return new Response(text, {
-        status: resp.status,
-        headers: { 'Content-Type': 'application/json' },
+      const resp = await callORS(key, {
+        coordinates: [
+          [start[1], start[0]],
+          [waypoint[1], waypoint[0]],
+          [finalPt[1], finalPt[0]],
+        ],
       });
+
+      const text = await resp.text();
+      const data = JSON.parse(text);
+      return resp.ok
+        ? response.status(resp.status).json(data)
+        : errorJson(response, resp.status, text);
     }
 
     if (roundTrip) {
@@ -103,15 +120,17 @@ export async function POST(request: Request): Promise<Response> {
         coordinates: [[start[1], start[0]]],
         options: { round_trip: { length: distanceM, points: 3, seed } },
       });
+
       const text = await resp.text();
-      return new Response(text, {
-        status: resp.status,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      if (!resp.ok) {
+        return errorJson(response, resp.status, text);
+      }
+
+      return response.status(resp.status).json(JSON.parse(text));
     }
 
     if (!end) {
-      return json({ error: 'end is required when roundTrip is false' }, { status: 400 });
+      return errorJson(response, 400, 'end is required when roundTrip is false');
     }
 
     for (let i = 0; i < 14; i++) {
@@ -124,14 +143,11 @@ export async function POST(request: Request): Promise<Response> {
       const text = await resp.text();
 
       if (resp.ok) {
-        return new Response(text, {
-          status: resp.status,
-          headers: { 'Content-Type': 'application/json' },
-        });
+        return response.status(resp.status).json(JSON.parse(text));
       }
 
       if (!text.includes('Could not find a valid point')) {
-        return json({ error: text }, { status: resp.status });
+        return errorJson(response, resp.status, text);
       }
     }
 
@@ -141,14 +157,12 @@ export async function POST(request: Request): Promise<Response> {
     const directText = await directResp.text();
 
     if (directResp.ok) {
-      return new Response(directText, {
-        status: directResp.status,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return response.status(directResp.status).json(JSON.parse(directText));
     }
 
-    return json({ error: directText }, { status: directResp.status });
+    return errorJson(response, directResp.status, directText);
   } catch (error) {
-    return json({ error: String(error) }, { status: 500 });
+    console.error('Route generation function crashed', error);
+    return errorJson(response, 500, String(error));
   }
 }

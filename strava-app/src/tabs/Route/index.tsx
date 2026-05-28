@@ -347,7 +347,17 @@ export default function RoutePage() {
           seed: useSeed,
         }),
       });
-      const json = await resp.json() as Record<string, unknown>;
+      const text = await resp.text();
+      let json: Record<string, unknown> = {};
+      try {
+        json = text ? JSON.parse(text) as Record<string, unknown> : {};
+      } catch {
+        if (!resp.ok) {
+          setError(text || `Ошибка API (${resp.status})`);
+          return;
+        }
+        throw new Error(`Invalid JSON from route API: ${text.slice(0, 120)}`);
+      }
       if (!resp.ok) {
         const errObj = json as { error?: string };
         try {
