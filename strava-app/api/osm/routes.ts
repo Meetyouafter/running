@@ -46,11 +46,17 @@ export default async function handler(request: any, response: any) {
 out geom tags;`;
 
   try {
+    const host = request.headers?.host;
+    const forwardedProto = request.headers?.['x-forwarded-proto'];
+    const protocol = typeof forwardedProto === 'string' ? forwardedProto : 'https';
+    const referer = host ? `${protocol}://${host}/route` : 'https://running-two-phi.vercel.app/route';
+
     const upstream = await fetch('https://overpass-api.de/api/interpreter', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
-        Accept: 'application/json,text/plain;q=0.9,*/*;q=0.8',
+        'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36',
+        Referer: referer,
       },
       body: new URLSearchParams({ data: query }).toString(),
     });
