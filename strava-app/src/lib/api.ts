@@ -31,7 +31,20 @@ let tokenExpiry  = 0;
 export async function getAccessToken(): Promise<string> {
   if (cachedToken && Date.now() / 1000 < tokenExpiry - 60) return cachedToken;
   const res  = await fetch('/api/strava/token', { method: 'POST' });
-  if (!res.ok) throw new Error(`Token refresh failed: ${res.status}`);
+  if (!res.ok) {
+    let detail = '';
+    try {
+      const data = await res.json() as { error?: string; message?: string; errors?: unknown };
+      detail = data.error || data.message || JSON.stringify(data);
+    } catch {
+      try {
+        detail = await res.text();
+      } catch {
+        detail = '';
+      }
+    }
+    throw new Error(`Token refresh failed: ${res.status}${detail ? ` - ${detail}` : ''}`);
+  }
   const data = await res.json() as { access_token: string; expires_at: number };
   cachedToken = data.access_token;
   tokenExpiry  = data.expires_at;

@@ -1,30 +1,54 @@
-import { json, requireEnv } from '../_utils';
+export default async function handler(request: any, response: any) {
+  if (request.method !== 'POST') {
+    response.setHeader('Allow', 'POST');
+    return response.status(405).json({ error: 'Method Not Allowed' });
+  }
 
-export const runtime = 'nodejs';
+  const clientId = process.env.STRAVA_CLIENT_ID;
+  const clientSecret = process.env.STRAVA_CLIENT_SECRET;
+  const refreshToken = process.env.STRAVA_REFRESH_TOKEN;
 
-export async function POST(): Promise<Response> {
+  if (!clientId || !clientSecret || !refreshToken) {
+    return response.status(500).json({
+      error: 'Missing Strava environment variables',
+      hasClientId: Boolean(clientId),
+      hasClientSecret: Boolean(clientSecret),
+      hasRefreshToken: Boolean(refreshToken),
+    });
+  }
+
   try {
-    const resp = await fetch('https://www.strava.com/oauth/token', {
+    const upstream = await fetch('https://www.strava.com/oauth/token', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: new URLSearchParams({
-        client_id: requireEnv('STRAVA_CLIENT_ID'),
-        client_secret: requireEnv('STRAVA_CLIENT_SECRET'),
-        refresh_token: requireEnv('STRAVA_REFRESH_TOKEN'),
+        client_id: clientId,
+        client_secret: clientSecret,
+        refresh_token: refreshToken,
         grant_type: 'refresh_token',
       }).toString(),
     });
 
-    const data = await resp.json() as Record<string, unknown>;
-    if (!resp.ok) {
-      return json(data, { status: resp.status });
+    const text = await upstream.text();
+    let data: unknown = text;
+
+    try {
+      data = JSON.parse(text);
+    } catch {
+      // Keep plain text payload if upstream did not return JSON.
     }
 
-    return json({
-      access_token: data.access_token,
-      expires_at: data.expires_at,
-    });
+    if (!upstream.ok) {
+      console.error('Strava token refresh failed', {
+        status: upstream.status,
+        body: data,
+      });
+      return response.status(upstream.status).json(data);
+    }
+
+    return response.status(200).json(data);
   } catch (error) {
-    return json({ error: String(error) }, { status: 500 });
+    console.error('Strava token function crashed', error);
+    return response.status(500).json({ error: String(error) });
   }
 }
