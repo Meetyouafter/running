@@ -72,7 +72,19 @@ export default function CoachTab() {
         body: JSON.stringify({ messages: apiMessages, systemPrompt }),
       });
 
-      if (!res.ok) throw new Error(`Server error ${res.status}`);
+      if (!res.ok) {
+        const text = await res.text();
+        let detail = text;
+        if (text.startsWith('data: ')) {
+          try {
+            const parsed = JSON.parse(text.slice(6));
+            detail = parsed.error || text;
+          } catch {
+            detail = text;
+          }
+        }
+        throw new Error(`Server error ${res.status}${detail ? ` - ${detail}` : ''}`);
+      }
 
       const reader = res.body!.getReader();
       const decoder = new TextDecoder();

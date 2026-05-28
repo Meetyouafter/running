@@ -33,68 +33,26 @@ function fmtTime(s: number) {
   return h > 0 ? `${h}ч ${m}м` : `${m} мин`;
 }
 
-function haversineM(a: LatLng, b: LatLng): number {
-  const R = 6_371_000;
-  const φ1 = a[0] * Math.PI / 180, φ2 = b[0] * Math.PI / 180;
-  const dφ = (b[0] - a[0]) * Math.PI / 180;
-  const dλ = (b[1] - a[1]) * Math.PI / 180;
-  const x = Math.sin(dφ / 2) ** 2 + Math.cos(φ1) * Math.cos(φ2) * Math.sin(dλ / 2) ** 2;
-  return R * 2 * Math.atan2(Math.sqrt(x), Math.sqrt(1 - x));
-}
-
-function coordsLengthM(coords: LatLng[]): number {
-  let d = 0;
-  for (let i = 1; i < coords.length; i++) d += haversineM(coords[i - 1], coords[i]);
-  return d;
-}
-
 async function fetchOSMRoutes(swLat: number, swLng: number, neLat: number, neLng: number): Promise<OSMRoute[]> {
-  const bbox = `${swLat},${swLng},${neLat},${neLng}`;
-  const query = `[out:json][timeout:30];
-(
-  relation["route"~"running|foot|hiking|walking"](${bbox});
-  way["leisure"="track"](${bbox});
-  way["highway"~"footway|path|track"]["name"](${bbox});
-  way["highway"~"footway|path"]["foot"="designated"](${bbox});
-);
-out geom tags;`;
-  const resp = await fetch('https://overpass-api.de/api/interpreter', {
-    method: 'POST',
-    body: query,
-    headers: { 'Content-Type': 'text/plain' },
+  const params = new URLSearchParams({
+    swLat: String(swLat),
+    swLng: String(swLng),
+    neLat: String(neLat),
+    neLng: String(neLng),
   });
-  if (!resp.ok) throw new Error(`Overpass API: ${resp.status}`);
-  const data = await resp.json() as {
-    elements: Array<{
-      type: string;
-      id: number;
-      tags?: Record<string, string>;
-      geometry?: Array<{ lat: number; lon: number }>;
-      members?: Array<{ type: string; geometry?: Array<{ lat: number; lon: number }> }>;
-    }>;
-  };
-
-  const results: OSMRoute[] = [];
-  for (const el of data.elements) {
-    let coords: LatLng[] = [];
-    if (el.type === 'relation' && el.members) {
-      for (const m of el.members) {
-        if (m.type === 'way' && m.geometry) {
-          for (const pt of m.geometry) coords.push([pt.lat, pt.lon]);
-        }
-      }
-    } else if (el.type === 'way' && el.geometry) {
-      coords = el.geometry.map(pt => [pt.lat, pt.lon]);
-    }
-    if (coords.length < 2) continue;
-    const name = el.tags?.name
-      || (el.tags?.leisure === 'track' ? 'Беговая дорожка' : null)
-      || el.tags?.ref
-      || null;
-    if (!name) continue;
-    results.push({ id: el.id, name, distanceM: coordsLengthM(coords), coords });
+  const resp = await fetch(`/api/osm/routes?${params.toString()}`);
+  const text = await resp.text();
+  let data: unknown = [];
+  try {
+    data = text ? JSON.parse(text) : [];
+  } catch {
+    throw new Error(text || `OSM API: ${resp.status}`);
   }
-  return results.sort((a, b) => a.distanceM - b.distanceM);
+  if (!resp.ok) {
+    const err = data as { error?: string };
+    throw new Error(err.error || `OSM API: ${resp.status}`);
+  }
+  return data as OSMRoute[];
 }
 
 function decodePolyline(encoded: string): LatLng[] {
