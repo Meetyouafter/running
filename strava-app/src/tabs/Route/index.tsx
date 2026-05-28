@@ -287,6 +287,22 @@ export default function RoutePage() {
     setActiveSegId(null);
   }
 
+  function downloadActiveGpx() {
+    if (activeMyRunId) {
+      const run = myRuns.find(a => a.id === activeMyRunId);
+      if (!run?.map?.summary_polyline) return;
+      downloadGpx(decodePolyline(run.map.summary_polyline), run.moving_time, run.name);
+    } else if (activeOsmId) {
+      const r = osmRoutes?.find(r => r.id === activeOsmId);
+      if (!r) return;
+      downloadGpx(r.coords, Math.round((r.distanceM / 1000) * 360), r.name);
+    } else if (activeSegId) {
+      const seg = segments?.find(s => s.id === activeSegId);
+      if (!seg) return;
+      downloadGpx(decodePolyline(seg.points), Math.round((seg.distance / 1000) * 360), seg.name);
+    }
+  }
+
   async function fetchPopular() {
     const map = mapRef.current;
     if (!map) return;
@@ -625,6 +641,14 @@ export default function RoutePage() {
                 </div>
               </button>
             ))}
+
+            {(activeMyRunId || activeOsmId || activeSegId) && (
+              <div className={styles.exportRow}>
+                <button className={styles.exportBtn} onClick={downloadActiveGpx}>
+                  Скачать GPX
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>
