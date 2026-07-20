@@ -57,10 +57,10 @@ export const useStore = create<AppStore>((set) => ({
   setPlan:   (plan) => { savePlan(plan); set({ plan }); },
   resetPlan: ()     => { savePlan(TRAINING_PLAN); set({ plan: TRAINING_PLAN }); },
 
-  activeFilter:    'all',
+  activeFilter:    'Run',
   setActiveFilter: (f) => set({ activeFilter: f }),
 
-  activeDays:    30,
+  activeDays:    0,
   setActiveDays: (d) => set({ activeDays: d }),
 
   loading:    false,

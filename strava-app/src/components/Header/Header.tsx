@@ -1,4 +1,5 @@
-import { NavLink } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
+import FiltersPanel from '../../tabs/Dashboard/FiltersPanel';
 import styles from './Header.module.css';
 
 const TABS = [
@@ -12,6 +13,7 @@ const TABS = [
 ];
 
 export default function Header() {
+  const { pathname } = useLocation();
   return (
     <header className={styles.header}>
       <div className={styles.logo}>
@@ -36,6 +38,7 @@ export default function Header() {
           </NavLink>
         ))}
       </nav>
+      {pathname === '/' && <FiltersPanel />}
     </header>
   );
 }

@@ -1,5 +1,5 @@
 import type { StravaActivity, StravaSplit } from '../types/strava';
-import { TYPE_LABELS, RACE_DATE, RACE_TARGET_PACE_SEC } from './trainingPlan';
+import { TYPE_LABELS, RACE_DATE, RACE_TARGET_PACE_SEC, RACE_DIST_KM, RACE_TARGET_MIN } from './trainingPlan';
 import type { PlanSession } from './trainingPlan';
 import { dur, fmt, paceSecToStr } from './utils';
 
@@ -328,7 +328,7 @@ export function buildSystemPrompt(recentActivities: StravaActivity[], plan: Plan
 ══════════════════════════════════════════
 Имя: Антон Левус · Да Нанг, Вьетнам
 Дата: ${today} · Осталось до забега: ${daysLeft} дней
-ЦЕЛЬ: 10 км за 57:00 (темп ${s2p(GOAL_PACE)}/км) · ${GOAL_DATE}
+ЦЕЛЬ: ${RACE_DIST_KM} км за ${RACE_TARGET_MIN}:00 (темп ${s2p(GOAL_PACE)}/км) · ${GOAL_DATE}
 
 Объём 7д: ${fmt(kmLast7, 1)} км / 30д: ${fmt(kmLast30, 1)} км
 Нагрузка (TSB): ${fatigue(last20)}

@@ -21,33 +21,27 @@
   color: var(--orange);
 }
 .goalSub  { font-size: 11px; color: var(--muted); margin-top: 3px; }
-.goalTimes { display: flex; align-items: center; gap: 14px; }
-.goalLabel { font-size: 9px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-bottom: 2px; }
-.goalVal   { font-family: 'Space Mono'; font-size: 24px; line-height: 1; }
-.goalUnit  { font-size: 13px; color: var(--muted); }
-.goalValTarget { color: var(--orange); }
-.goalArrow { font-size: 20px; color: #333; margin-top: 12px; }
 
-.progressTrack {
-  height: 8px;
-  background: #1e1e1e;
-  border-radius: 99px;
-  overflow: hidden;
-  margin-bottom: 7px;
+.goalsGrid4 { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px,1fr)); gap: 12px; }
+.goalCard4 {
+  background: #1a1a1a; border: 1px solid #272727; border-radius: 12px;
+  padding: 14px 16px; transition: border-color .15s;
 }
-.progressFill {
-  height: 100%;
-  background: linear-gradient(90deg, var(--blue), var(--orange));
-  border-radius: 99px;
-  transition: width .5s ease;
+.goalCard4:hover { border-color: #3a3a3a; }
+.goalCard4Title {
+  font-family: 'Bebas Neue'; font-size: 20px; letter-spacing: 1px;
+  color: var(--text); margin-bottom: 10px;
 }
-.progressLabels {
-  display: flex;
-  justify-content: space-between;
-  font-size: 10px;
-  color: var(--muted);
+.goalMetricRow {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 5px 0; border-bottom: 1px solid #232323; font-size: 12px;
 }
-.progressPct { color: var(--orange); font-weight: 600; }
+.goalMetricRow:last-child { border-bottom: none; }
+.goalMetricRowHi { margin-top: 2px; padding-top: 8px; border-top: 1px dashed #333; border-bottom: none; }
+.goalMetricLabel { color: var(--muted); }
+.goalMetricVal   { font-family: 'Space Mono'; font-size: 13px; color: var(--text); }
+.goalMiniDiffOk   { color: var(--green);  font-family: 'Space Mono'; font-size: 12px; font-weight: 600; }
+.goalMiniDiffWarn { color: var(--orange); font-family: 'Space Mono'; font-size: 13px; font-weight: 600; }
 
 /* ── Current week bar ── */
 .weekBar {

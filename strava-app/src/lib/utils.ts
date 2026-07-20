@@ -83,6 +83,7 @@ export function addDays(iso: string, n: number): string {
 
 export function buildActivityMap(runs: StravaActivity[], sessions: PlanSession[]): Map<string, StravaActivity> {
   const sorted = [...sessions].sort((a, b) => a.date.localeCompare(b.date));
+  const planStart = sorted[0]?.date;
   const usedIds = new Set<number>();
   const map = new Map<string, StravaActivity>();
 
@@ -93,11 +94,31 @@ export function buildActivityMap(runs: StravaActivity[], sessions: PlanSession[]
   for (const p of sorted) {
     if (map.has(p.date)) continue;
     for (const off of [-1, 1]) {
-      const found = runs.find(a => !usedIds.has(a.id) && a.start_date_local.slice(0, 10) === addDays(p.date, off));
+      const cand = addDays(p.date, off);
+      if (planStart && cand < planStart) continue; // don't reach back to before the plan started
+      const found = runs.find(a => !usedIds.has(a.id) && a.start_date_local.slice(0, 10) === cand);
       if (found) { map.set(p.date, found); usedIds.add(found.id); break; }
     }
   }
   return map;
+}
+
+// mm:ss for <1h, h:mm:ss for ≥1h — used for pace predictions with sub-minute precision.
+export function durMinStr(totalMin: number): string {
+  const totalSec = Math.round(totalMin * 60);
+  const h = Math.floor(totalSec / 3600);
+  const m = Math.floor((totalSec % 3600) / 60);
+  const s = totalSec % 60;
+  return h > 0
+    ? `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
+    : `${m}:${String(s).padStart(2, '0')}`;
+}
+
+// h:mm — used for round target times (no seconds).
+export function hmFromMin(totalMin: number): string {
+  const h = Math.floor(totalMin / 60);
+  const m = Math.round(totalMin % 60);
+  return `${h}:${String(m).padStart(2, '0')}`;
 }
 
 export function decodePolyline(enc: string): [number, number][] {

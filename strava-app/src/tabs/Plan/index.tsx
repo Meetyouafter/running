@@ -1,8 +1,8 @@
 import { useState, useMemo } from 'react';
 import { useStore } from '../../store/useStore';
 import { isDefaultPlan } from '../../store/useStore';
-import { actPaceSec, paceSecToStr, fmt, buildActivityMap } from '../../lib/utils';
-import { TRAINING_PLAN, TYPE_LABELS, TYPE_COLORS, RACE_DATE, RACE_TARGET_MIN } from '../../lib/trainingPlan';
+import { actPaceSec, paceSecToStr, fmt, buildActivityMap, hmFromMin } from '../../lib/utils';
+import { TRAINING_PLAN, TYPE_LABELS, TYPE_COLORS, RACE_DATE, RACE_DIST_KM, RACE_TARGET_MIN, RACE_TARGET_PACE_SEC, HR_ZONES } from '../../lib/trainingPlan';
 import type { PlanSession } from '../../lib/trainingPlan';
 import styles from './Plan.module.css';
 
@@ -52,8 +52,6 @@ function Sess({ type, day, date, title, desc, km, tip }: {
     </div>
   );
 }
-
-const T = (t: string) => `<b>${t}</b>`;
 
 function qualityCheck(type: string, act: { average_heartrate?: number; splits_metric?: { moving_time: number; distance: number }[]; distance: number; average_speed: number } | null, targetPaceSec: number): { emoji: string; note: string } {
   if (!act) return { emoji: '❌', note: 'пропущено' };
@@ -133,7 +131,7 @@ function WeekActuals({ weekNum }: { weekNum: number }) {
 const RU_DAYS = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
 
 function phaseInfo(weekIdx: number, total: number): { label: string; cls: string } {
-  const pos = weekIdx / total;
+  const pos = (weekIdx + 1) / total; // 1-based: last week always resolves to 1.0 (taper)
   if (pos < 0.3) return { label: 'База',     cls: 'phBase'  };
   if (pos < 0.6) return { label: 'Развитие', cls: 'phBuild' };
   if (pos < 0.85) return { label: 'Пик',      cls: 'phPeak'  };
@@ -317,145 +315,89 @@ function PlanEditor({ onClose }: { onClose: () => void }) {
   );
 }
 
+// ─── Pace/HR zone table, derived from whatever's currently in the plan ────
+const ZONE_STYLE: Record<string, { cls: string; label: string; hrRange: readonly [number, number] }> = {
+  easy:     { cls: 'z1', label: 'Лёгкий / длинный', hrRange: [HR_ZONES.z1[0], HR_ZONES.z2[1]] },
+  long:     { cls: 'z1', label: 'Лёгкий / длинный', hrRange: [HR_ZONES.z1[0], HR_ZONES.z2[1]] },
+  tempo:    { cls: 'z3', label: 'Темп / порог',      hrRange: [HR_ZONES.z3[0], HR_ZONES.z4[1]] },
+  'race-p': { cls: 'z4', label: 'Гоночный темп',     hrRange: [HR_ZONES.z3[0], HR_ZONES.z4[1]] },
+  interval: { cls: 'z5', label: 'Интервалы',         hrRange: [HR_ZONES.z4[0], HR_ZONES.z5[1]] },
+};
+
+function PaceZoneTable({ plan }: { plan: PlanSession[] }) {
+  const byType: Record<string, number[]> = {};
+  plan.forEach(s => { (byType[s.type] ??= []).push(s.targetPaceSec); });
+
+  // 'easy' and 'long' share one visual zone — merge their pace ranges.
+  const merged: Record<string, number[]> = {};
+  Object.entries(byType).forEach(([type, paces]) => {
+    const key = (type === 'long') ? 'easy' : type;
+    (merged[key] ??= []).push(...paces);
+  });
+
+  const order = ['easy', 'tempo', 'race-p', 'interval'];
+  const cards = order.filter(t => merged[t]?.length);
+  if (!cards.length) return null;
+
+  return (
+    <div className={styles.zonesGrid}>
+      {cards.map(type => {
+        const paces = merged[type];
+        const min = Math.min(...paces), max = Math.max(...paces);
+        const z = ZONE_STYLE[type];
+        return (
+          <div key={type} className={`${styles.zone} ${styles[z.cls]}`}>
+            <div className={styles.zl}>{z.label}</div>
+            <div className={styles.zp}>{paceSecToStr(min)}{max !== min ? `–${paceSecToStr(max)}` : ''}</div>
+            <div className={styles.zn}>ЧСС {z.hrRange[0]}–{z.hrRange[1]}</div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+const RU_DAY_ORDER = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
+
 export default function PlanTab() {
   const { plan: storePlan } = useStore();
   const [showEditor, setShowEditor] = useState(false);
-  const today = new Date().toISOString().slice(0, 10);
-  const nextSession = storePlan.find(p => p.date > today);
-  const currentWeekNum = nextSession?.week ?? storePlan[storePlan.length - 1]?.week ?? 1;
   const isModified = !isDefaultPlan(storePlan);
+
+  const weeksCount = new Set(storePlan.map(s => s.week)).size;
+  const trainDays = Array.from(new Set(storePlan.map(s => RU_DAYS[new Date(s.date).getDay()])))
+    .sort((a, b) => RU_DAY_ORDER.indexOf(a) - RU_DAY_ORDER.indexOf(b));
+
   return (
     <div className={styles.tab}>
       {showEditor && <PlanEditor onClose={() => setShowEditor(false)} />}
 
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-        <div className={styles.planSection} style={{ marginTop: 0, marginBottom: 0 }}>Цель и текущая форма</div>
+        <div className={styles.planSection} style={{ marginTop: 0, marginBottom: 0 }}>Цель и план</div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           {isModified && <span className={styles.planModifiedBadge}>Изменён</span>}
           <button className={styles.editPlanBtn} onClick={() => setShowEditor(true)}>✎ Редактировать план</button>
         </div>
       </div>
       <div className={styles.planHero}>
-        <div className={styles.planStat}><div className={styles.planStatLabel}>Текущий 10 км</div><div className={styles.planStatVal}>59–62 мин</div></div>
-        <div className={styles.planStat}><div className={styles.planStatLabel}>Цель {new Date(RACE_DATE).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })}</div><div className={`${styles.planStatVal} ${styles.hi}`}>{RACE_TARGET_MIN} мин</div></div>
-        <div className={styles.planStat}><div className={styles.planStatLabel}>Тренировочных недель</div><div className={styles.planStatVal}>6</div></div>
-        <div className={styles.planStat}><div className={styles.planStatLabel}>Дни</div><div className={styles.planStatVal} style={{ fontSize: 14 }}>Вт · Ср · Чт · Вс</div></div>
+        <div className={styles.planStat}><div className={styles.planStatLabel}>Дистанция</div><div className={styles.planStatVal}>{RACE_DIST_KM} км</div></div>
+        <div className={styles.planStat}><div className={styles.planStatLabel}>Цель {new Date(RACE_DATE).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })}</div><div className={`${styles.planStatVal} ${styles.hi}`}>{hmFromMin(RACE_TARGET_MIN)}</div></div>
+        <div className={styles.planStat}><div className={styles.planStatLabel}>Тренировочных недель</div><div className={styles.planStatVal}>{weeksCount}</div></div>
+        <div className={styles.planStat}><div className={styles.planStatLabel}>Дни</div><div className={styles.planStatVal} style={{ fontSize: 14 }}>{trainDays.join(' · ')}</div></div>
       </div>
-
-      <div className={styles.planTip}>📌 <b>Почему 57, а не 55?</b> Лучший 5 км (5:22/км) — максимальное усилие. Расчётный 10 км = 59–62 мин. 57 мин к 27 июня — амбициозная но реальная цель. 55 мин — на 19 июля после 6 недель работы.</div>
 
       <div className={styles.planSection}>Целевые темпы тренировок</div>
-      <div className={styles.zonesGrid}>
-        <div className={`${styles.zone} ${styles.z1}`}><div className={styles.zl}>Лёгкий</div><div className={styles.zp}>6:50–7:20</div><div className={styles.zn}>ЧСС &lt;130</div></div>
-        <div className={`${styles.zone} ${styles.z2}`}><div className={styles.zl}>Умеренный</div><div className={styles.zp}>6:25–6:45</div><div className={styles.zn}>ЧСС 130–138</div></div>
-        <div className={`${styles.zone} ${styles.z3}`}><div className={styles.zl}>Темп / порог</div><div className={styles.zp}>6:10–6:20</div><div className={styles.zn}>ЧСС 140–150</div></div>
-        <div className={`${styles.zone} ${styles.z4}`}><div className={styles.zl}>Гоночный</div><div className={styles.zp}>5:35–5:45</div><div className={styles.zn}>ЧСС 150–158</div></div>
-        <div className={`${styles.zone} ${styles.z5}`}><div className={styles.zl}>Интервалы МПК</div><div className={styles.zp}>5:28–5:35</div><div className={styles.zn}>ЧСС &gt;158</div></div>
-      </div>
+      <PaceZoneTable plan={storePlan} />
 
       <div className={styles.planSection}>Недельный план</div>
-
-      {isModified ? <DynamicPlanView /> : <>
-
-      <WeekCard id="pw1" title="Неделя 1" phase={{ label: 'База', cls: 'phBase' }} dates="19–25 мая" focus="Первые интервалы" km="~34 км" defaultOpen={currentWeekNum === 1}>
-        <div className={styles.sessList}>
-          <Sess type="interval" day="Вт" date="19 мая" title="Интервалы 4×800м" km="~9 км"
-            desc={`Разминка ${T('2 км @ 7:10')} · 4 × ${T('800м @ 5:33/км')} · отдых 2 мин · заминка ${T('1.5 км')}`}
-            tip="🟢 Если легко: сократи отдых до 90 сек · 🔴 Если тяжело: замедлись до 5:40/км или 3 повтора" />
-          <Sess type="easy" day="Ср" date="20 мая" title="Восстановительный" km="6 км"
-            desc={`Лёгко · ${T('7:00–7:20/км')} · ЧСС не выше 130`}
-            tip="🟢 Чем медленнее — тем лучше · 🔴 Если ноги тяжёлые: сократи до 4 км" />
-          <Sess type="tempo" day="Чт" date="21 мая" title="Темп 5 км ↑" km="~9 км"
-            desc={`Разминка ${T('2 км')} · ${T('5 км @ 6:05/км')} непрерывно · заминка ${T('2 км')}`}
-            tip="🟢 Если легко: ускорь последний 1 км до 5:50 · 🔴 Если тяжело: замедлись до 6:10" />
-          <Sess type="long" day="Вс" date="25 мая" title="Длинный лёгкий ↑" km="14 км"
-            desc={`Равномерно · ${T('7:10–7:25/км')} · ЧСС 115–128 · не торопиться`}
-            tip="🟢 Если легко: добавь 1–2 км · 🔴 Если тяжело: стоп на 11–12 км" />
-        </div>
-        <div className={styles.planTip}><b>Совет:</b> Темп четверга — настоящая пороговая работа. Если первые 2 км нормально — темп правильный. Воскресенье 14 км — строго легко, ЧСС ≤128.</div>
-        <WeekActuals weekNum={1} />
-      </WeekCard>
-
-      <WeekCard id="pw2" title="Неделя 2" phase={{ label: 'Развитие', cls: 'phBuild' }} dates="26 мая — 1 июня" focus="Объём интервалов растёт" km="~42 км" defaultOpen={currentWeekNum === 2}>
-        <div className={styles.sessList}>
-          <Sess type="interval" day="Вт" date="26 мая" title="Интервалы 5×1000м" km="~11 км"
-            desc={`Разминка ${T('2 км')} · 5 × ${T('1 км @ 5:33/км')} · отдых 90 сек · заминка ${T('1.5 км')}`}
-            tip="🟢 Если легко: добавь 6-й повтор · 🔴 Если тяжело: 4 повтора хватит" />
-          <Sess type="easy" day="Ср" date="27 мая" title="Лёгкий бег" km="8 км"
-            desc={`Лёгко · ${T('7:10–7:30/км')} · ЧСС &lt;125`} />
-          <Sess type="tempo" day="Чт" date="28 мая" title="Темп 5 км ↑" km="~10 км"
-            desc={`Разминка ${T('2 км')} · ${T('5 км @ 6:15/км')} непрерывно · заминка ${T('2 км')}`}
-            tip="🟢 Если легко: ускорь последний 1 км до 6:00 · 🔴 Если тяжело: замедлись до 6:20" />
-          <Sess type="long" day="Вс" date="1 июня" title="Длинный с финишем" km="14 км"
-            desc={`12 км @ ${T('7:00–7:15/км')} · последние 2 км ускорить до ${T('6:30/км')}`}
-            tip="🟢 Если легко: добавь 1 км лёгко в конце · 🔴 Если тяжело: стоп на 12 км без финишного ускорения" />
-        </div>
-      </WeekCard>
-
-      <WeekCard id="pw3" title="Неделя 3" phase={{ label: 'Развитие', cls: 'phBuild' }} dates="2–8 июня" focus="Знакомство с гоночным темпом" km="~35 км" defaultOpen={currentWeekNum === 3}>
-        <div className={styles.sessList}>
-          <Sess type="interval" day="Вт" date="2 июня" title="Интервалы 6×1000м" km="~12 км"
-            desc={`Разминка ${T('2 км')} · 6 × ${T('1 км @ 5:30/км')} · отдых 90 сек · заминка ${T('1.5 км')}`}
-            tip="🟢 Если легко: последние 2 можно чуть ускорить · 🔴 Стоп на 4–5 повторах" />
-          <Sess type="easy" day="Ср" date="3 июня" title="Лёгкий" km="6 км"
-            desc={`Лёгко · ${T('7:00–7:20/км')}`} />
-          <Sess type="race-p" day="Чт" date="4 июня" title="Гоночный темп 4 км" km="~8 км"
-            desc={`Разминка ${T('2 км')} · ${T('4 км @ 5:42/км')} — твой целевой темп · заминка ${T('1 км')}`}
-            tip="🟢 Если легко: отличный знак! · 🔴 Сократи до 3 км @ 5:42" />
-          <Sess type="long" day="Вс" date="8 июня" title="Длинный лёгкий" km="13 км"
-            desc={`Равномерно · ${T('6:55–7:15/км')}`} />
-        </div>
-        <div className={styles.planTip}><b>Ключевая тренировка:</b> четверг, 4 км @ 5:42 — твой гоночный темп. Пробеги уверенно.</div>
-      </WeekCard>
-
-      <WeekCard id="pw4" title="Неделя 4" phase={{ label: 'Пик', cls: 'phPeak' }} dates="9–15 июня" focus="Самая тяжёлая неделя" km="~36 км" defaultOpen={currentWeekNum === 4}>
-        <div className={styles.sessList}>
-          <Sess type="interval" day="Вт" date="9 июня" title="Интервалы 3×2000м" km="~12 км"
-            desc={`Разминка ${T('2 км')} · 3 × ${T('2 км @ 5:33/км')} · отдых 2.5 мин · заминка ${T('1.5 км')}`}
-            tip="🔴 Если на 3-м темп уходит — завершить что есть, это нормально" />
-          <Sess type="easy" day="Ср" date="10 июня" title="Восстановление" km="6 км"
-            desc={`Очень легко · ${T('7:10–7:30/км')}`} />
-          <Sess type="race-p" day="Чт" date="11 июня" title="Темп + гоночный финиш" km="~10 км"
-            desc={`Разминка ${T('2 км')} · ${T('4 км @ 6:15')} → ${T('2 км @ 5:42/км')} · заминка ${T('1 км')}`} />
-          <Sess type="long" day="Вс" date="15 июня" title="Длинный умеренный" km="11 км"
-            desc={`8 км @ ${T('7:00/км')} · последние 3 км @ ${T('6:20/км')}`} />
-        </div>
-      </WeekCard>
-
-      <WeekCard id="pw5" title="Неделя 5" phase={{ label: 'Подводка', cls: 'phTaper' }} dates="16–22 июня" focus="Снижение объёма, темп сохраняем" km="~24 км" defaultOpen={currentWeekNum === 5}>
-        <div className={styles.sessList}>
-          <Sess type="interval" day="Вт" date="16 июня" title="Короткие 4×600м" km="~7 км"
-            desc={`Разминка ${T('2 км')} · 4 × ${T('600м @ 5:20/км')} · отдых 2 мин · заминка ${T('1.5 км')}`} />
-          <Sess type="easy" day="Ср" date="17 июня" title="Лёгкий" km="5 км"
-            desc={`Совсем легко · ${T('7:00–7:20/км')}`} />
-          <Sess type="race-p" day="Чт" date="18 июня" title="Репетиция темпа 3 км" km="~7 км"
-            desc={`Разминка ${T('2 км')} · ${T('3 км строго @ 5:42/км')} · заминка ${T('1 км')}`}
-            tip="🎯 Цель — уверенность, не рекорд. Если тяжело — нужно больше отдыха перед стартом" />
-          <Sess type="easy" day="Вс" date="22 июня" title="Лёгкая пробежка" km="6 км"
-            desc={`Расслабленно · ${T('7:00/км')}`} />
-        </div>
-        <div className={styles.planTip}><b>Подводка:</b> объём падает, ноги ощущаются лёгкими — хороший знак. Больше сна, воды.</div>
-      </WeekCard>
+      <DynamicPlanView />
 
       <div className={styles.raceBlock}>
-        <div className={styles.raceBlockTitle}>🏁 Контрольный забег — {new Date(RACE_DATE).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })} · цель {RACE_TARGET_MIN}:00</div>
-        <div className={styles.sessList}>
-          <Sess type="easy" day="Вт" date="23 июня" title="Активация + ускорения" km="4 км"
-            desc={`${T('3 км @ 7:00')} · 4 ускорения 100м`} />
-          <Sess type="rest-d" day="Ср" date="24 июня" title="Отдых" km="—" desc="" />
-          <Sess type="easy" day="Чт" date="25 июня" title="Лёгкая пробежка" km="3 км"
-            desc={`${T('3 км @ 7:00')} + 2 стрейдера 80м`} />
-          <Sess type="rest-d" day="Пт" date="26 июня" title="Полный отдых · 8+ часов сна" km="—" desc="" />
-          <Sess type="race-p" day="Сб" date="27 июня" title="🎯 10 км — старт @ 5:42/км" km="10 км"
-            desc={`Км 1–3: ${T('не быстрее 5:50')} · Км 4–8: ${T('5:42')} · Км 9–10: всё что есть`} />
+        <div className={styles.raceBlockTitle}>🏁 Старт — {new Date(RACE_DATE).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
+        <div style={{ fontSize: 13, color: 'var(--muted)' }}>
+          Цель: {RACE_DIST_KM} км за {hmFromMin(RACE_TARGET_MIN)} — темп {paceSecToStr(RACE_TARGET_PACE_SEC)}/км
         </div>
       </div>
-
-      <div className={styles.vacBlock}>
-        <div className={styles.vacBlockTitle}>🏖 Отпуск 28 июня — 12 июля</div>
-        <p>Две недели без бега — аэробная форма сохраняется ~80%. Отдыхай без чувства вины.</p>
-      </div>
-      </>}
     </div>
   );
 }

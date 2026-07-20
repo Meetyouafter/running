@@ -1,46 +1,14 @@
 import { useStore } from '../../store/useStore';
-import { fetchActivities, clearActivityCache } from '../../lib/api';
 import { ctype, weekMondayKey } from '../../lib/utils';
 import type { StravaActivity } from '../../types/strava';
-import FilterBar from './FilterBar';
 import StatsGrid from './StatsGrid';
 import ActivityList from './ActivityList';
-import RacePredictor from './RacePredictor';
-import PersonalRecords from './PersonalRecords';
 import ProgressSection from './ProgressSection';
 import BarChart from '../../components/Charts/BarChart';
 import styles from './Dashboard.module.css';
 
-const PERIOD_OPTIONS = [
-  { days: 30,  label: '30 дней' },
-  { days: 90,  label: '3 месяца' },
-  { days: 180, label: '6 месяцев' },
-  { days: 365, label: '1 год' },
-  { days: 0,   label: 'Всё время' },
-];
-
 export default function DashboardTab() {
-  const { activities, activeFilter, activeDays, setActiveDays, loading, error,
-          setActivities, setLoading, setError, setActiveFilter } = useStore();
-
-  // Initial load is handled by App.tsx (runs once at app mount); this tab
-  // only triggers fetches for explicit user actions (period change, refresh).
-
-  async function loadData(days = activeDays) {
-    setLoading(true);
-    setError(null);
-    try {
-      const afterTs = days > 0 ? Math.floor((Date.now() - days * 86400000) / 1000) : null;
-      const acts = await fetchActivities(afterTs);
-      if (!acts.length) { setError('Нет активностей за выбранный период.'); return; }
-      setActivities(acts);
-      setActiveFilter('all');
-    } catch (e) {
-      setError(String(e));
-    } finally {
-      setLoading(false);
-    }
-  }
+  const { activities, activeFilter, activeDays, loading, error } = useStore();
 
   const filtered: StravaActivity[] = activeFilter === 'all'
     ? activities
@@ -71,28 +39,6 @@ export default function DashboardTab() {
 
   return (
     <div className={styles.tab}>
-      {/* Period selector */}
-      <div className={styles.periodBar}>
-        <span className={styles.periodLabel}>Период:</span>
-        {PERIOD_OPTIONS.map(opt => (
-          <button
-            key={opt.days}
-            className={`${styles.periodBtn} ${activeDays === opt.days ? styles.active : ''}`}
-            onClick={() => { setActiveDays(opt.days); if (activities.length) loadData(opt.days); }}
-          >
-            {opt.label}
-          </button>
-        ))}
-        <button
-          className={styles.periodBtn}
-          disabled={loading}
-          onClick={() => { clearActivityCache(); loadData(); }}
-          title="Очистить кеш и загрузить заново"
-        >
-          ↺
-        </button>
-      </div>
-
       {loading && (
         <div className="loading-state">
           <div className="spinner" />
@@ -111,7 +57,6 @@ export default function DashboardTab() {
 
       {!loading && activities.length > 0 && (
         <>
-          <FilterBar />
           <ProgressSection activities={sorted} />
           <StatsGrid activities={sorted} />
 
@@ -140,9 +85,6 @@ export default function DashboardTab() {
               </div>
             </div>
           )}
-
-          <RacePredictor activities={sorted} />
-          <PersonalRecords activities={sorted} />
 
           <div className="section-title">
             Активности{' '}
