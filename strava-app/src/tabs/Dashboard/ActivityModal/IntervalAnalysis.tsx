@@ -1,6 +1,7 @@
 import type { StravaStreams } from '../../../types/strava';
 import type { PlanSession } from '../../../lib/trainingPlan';
 import { dur, paceSecToStr, hrColor } from '../../../lib/utils';
+import { useStore } from '../../../store/useStore';
 import styles from './IntervalAnalysis.module.css';
 
 export interface IvlData {
@@ -85,6 +86,7 @@ interface Props {
 }
 
 export default function IntervalAnalysis({ ivl, plan }: Props) {
+  const { hrZones } = useStore();
   const planPace = plan?.type === 'interval' ? plan.targetPaceSec : null;
   const diffPace = planPace ? ivl.avgPaceSec - planPace : null;
   const verdict  = planPace
@@ -132,7 +134,7 @@ export default function IntervalAnalysis({ ivl, plan }: Props) {
                 <td>{iv.distance}м</td>
                 <td style={{ color: paceColor(iv.paceSec) }}>{paceSecToStr(iv.paceSec)}/км</td>
                 <td>{dur(iv.duration)}</td>
-                <td>{iv.avgHR ? <span style={{ color: hrColor(iv.avgHR) }}>{iv.avgHR}</span> : '—'}</td>
+                <td>{iv.avgHR ? <span style={{ color: hrColor(iv.avgHR, hrZones?.heart_rate?.zones) }}>{iv.avgHR}</span> : '—'}</td>
                 <td style={{ color: 'var(--muted)' }}>{rec ? dur(rec.duration) + (rec.avgHR ? ` ${rec.avgHR}bpm` : '') : '—'}</td>
               </tr>
             );

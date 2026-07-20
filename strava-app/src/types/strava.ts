@@ -22,6 +22,59 @@ export interface StravaActivity {
   map?: { summary_polyline: string } | null;
   laps?: StravaLap[];
   splits_metric?: StravaSplit[];
+  best_efforts?: StravaBestEffort[];
+  segment_efforts?: StravaSegmentEffort[];
+  achievement_count?: number;
+  pr_count?: number;
+  kudos_count?: number;
+}
+
+export interface StravaBestEffort {
+  name: string;
+  distance: number;
+  moving_time: number;
+  elapsed_time: number;
+  start_date_local: string;
+  pr_rank?: number | null;
+}
+
+export interface StravaSegmentEffort {
+  name: string;
+  elapsed_time: number;
+  moving_time: number;
+  distance: number;
+  pr_rank?: number | null;
+  kom_rank?: number | null;
+  segment: { id: number; name: string };
+}
+
+export interface StravaActivityTotals {
+  count: number;
+  distance: number;
+  moving_time: number;
+  elapsed_time: number;
+  elevation_gain: number;
+  achievement_count?: number;
+}
+
+export interface StravaAthleteStats {
+  biggest_ride_distance?: number;
+  biggest_climb_elevation_gain?: number;
+  recent_ride_totals: StravaActivityTotals;
+  recent_run_totals: StravaActivityTotals;
+  recent_swim_totals: StravaActivityTotals;
+  ytd_ride_totals: StravaActivityTotals;
+  ytd_run_totals: StravaActivityTotals;
+  ytd_swim_totals: StravaActivityTotals;
+  all_ride_totals: StravaActivityTotals;
+  all_run_totals: StravaActivityTotals;
+  all_swim_totals: StravaActivityTotals;
+}
+
+export interface StravaZoneRange { min: number; max: number }
+export interface StravaAthleteZones {
+  heart_rate?: { custom_zones: boolean; zones: StravaZoneRange[] };
+  power?: { zones: StravaZoneRange[] };
 }
 
 export interface StravaLap {

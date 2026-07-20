@@ -1,0 +1,8 @@
+.block { margin-bottom: 22px; }
+.blockTitle {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 16px;
+  letter-spacing: 1px;
+  color: var(--orange);
+  margin-bottom: 8px;
+}

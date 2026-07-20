@@ -1,9 +1,11 @@
 import type { StravaActivity } from '../../types/strava';
 import { fmt, dur, hrColor } from '../../lib/utils';
+import { useStore } from '../../store/useStore';
 
 interface Props { activities: StravaActivity[] }
 
 export default function StatsGrid({ activities }: Props) {
+  const { hrZones } = useStore();
   const totalDist = activities.reduce((s, a) => s + (a.distance || 0), 0);
   const totalTime = activities.reduce((s, a) => s + (a.moving_time || 0), 0);
   const totalElev = activities.reduce((s, a) => s + (a.total_elevation_gain || 0), 0);
@@ -30,7 +32,7 @@ export default function StatsGrid({ activities }: Props) {
       </div>
       <div className="stat-card">
         <div className="stat-label">Ср. пульс</div>
-        <div className="stat-value" style={{ color: hrColor(avgHR) }}>
+        <div className="stat-value" style={{ color: hrColor(avgHR, hrZones?.heart_rate?.zones) }}>
           {avgHR ? fmt(avgHR, 0) : '—'}<span className="stat-unit">bpm</span>
         </div>
       </div>

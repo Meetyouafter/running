@@ -1,4 +1,3 @@
-import { useEffect } from 'react';
 import { useStore } from '../../store/useStore';
 import { fetchActivities, clearActivityCache } from '../../lib/api';
 import { ctype, weekMondayKey } from '../../lib/utils';
@@ -24,7 +23,8 @@ export default function DashboardTab() {
   const { activities, activeFilter, activeDays, setActiveDays, loading, error,
           setActivities, setLoading, setError, setActiveFilter } = useStore();
 
-  useEffect(() => { if (!activities.length) loadData(); }, []);
+  // Initial load is handled by App.tsx (runs once at app mount); this tab
+  // only triggers fetches for explicit user actions (period change, refresh).
 
   async function loadData(days = activeDays) {
     setLoading(true);

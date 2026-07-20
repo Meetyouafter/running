@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { StravaActivity, ActivityFilter } from '../types/strava';
+import type { StravaActivity, ActivityFilter, StravaAthleteZones } from '../types/strava';
 import type { PlanSession } from '../lib/trainingPlan';
 import { TRAINING_PLAN } from '../lib/trainingPlan';
 
@@ -44,6 +44,9 @@ interface AppStore {
 
   error: string | null;
   setError: (e: string | null) => void;
+
+  hrZones: StravaAthleteZones | null;
+  setHrZones: (z: StravaAthleteZones | null) => void;
 }
 
 export const useStore = create<AppStore>((set) => ({
@@ -68,4 +71,7 @@ export const useStore = create<AppStore>((set) => ({
 
   error:    null,
   setError: (e) => set({ error: e }),
+
+  hrZones:    null,
+  setHrZones: (z) => set({ hrZones: z }),
 }));

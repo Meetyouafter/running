@@ -3,6 +3,7 @@ import { fetchActivityDetail, fetchActivityStreams } from '../../../lib/api';
 import type { StravaActivity, StravaStreams } from '../../../types/strava';
 import { fmt, dur, pace, hrColor, dateStr, ICONS, paceSecToStr, actPaceSec, decodePolyline } from '../../../lib/utils';
 import { TRAINING_PLAN } from '../../../lib/trainingPlan';
+import { useStore } from '../../../store/useStore';
 import ProAnalysis from './ProAnalysis';
 import IntervalAnalysis, { detectIntervals } from './IntervalAnalysis';
 import LineChart from '../../../components/Charts/LineChart';
@@ -16,6 +17,7 @@ interface Props {
 }
 
 export default function ActivityModal({ activityId, onClose }: Props) {
+  const { hrZones } = useStore();
   const [detail, setDetail]   = useState<StravaActivity | null>(null);
   const [streams, setStreams] = useState<StravaStreams>({});
   const [loading, setLoading] = useState(true);
@@ -72,12 +74,13 @@ export default function ActivityModal({ activityId, onClose }: Props) {
     { l: 'Темп',           v: detail.average_speed > 0 ? pace(detail.average_speed) + '/км' : '—' },
     { l: 'Макс. скорость', v: detail.max_speed ? `${fmt(detail.max_speed * 3.6, 1)} км/ч` : '—' },
     { l: 'Набор высоты',   v: `${fmt(detail.total_elevation_gain, 0)} м` },
-    { l: 'Ср. пульс',      v: detail.average_heartrate ? `${fmt(detail.average_heartrate, 0)} bpm` : '—', color: hrColor(detail.average_heartrate) },
-    { l: 'Макс. пульс',    v: detail.max_heartrate ? `${detail.max_heartrate} bpm` : '—', color: hrColor(detail.max_heartrate) },
+    { l: 'Ср. пульс',      v: detail.average_heartrate ? `${fmt(detail.average_heartrate, 0)} bpm` : '—', color: hrColor(detail.average_heartrate, hrZones?.heart_rate?.zones) },
+    { l: 'Макс. пульс',    v: detail.max_heartrate ? `${detail.max_heartrate} bpm` : '—', color: hrColor(detail.max_heartrate, hrZones?.heart_rate?.zones) },
     { l: 'Ср. каденс',    v: detail.average_cadence ? `${fmt(detail.average_cadence * 2, 0)} шаг/мин` : '—' },
     { l: 'Ср. мощность',  v: detail.average_watts ? `${fmt(detail.average_watts, 0)} W` : '—' },
     { l: 'Калории',        v: detail.calories ? `${detail.calories} ккал` : '—' },
-{ l: 'Температура',    v: detail.average_temp != null ? `${detail.average_temp}°C` : '—' },
+    { l: 'Температура',    v: detail.average_temp != null ? `${detail.average_temp}°C` : '—' },
+    { l: 'Relative Effort', v: detail.suffer_score != null ? String(detail.suffer_score) : '—' },
   ] : [];
 
   const hasHR   = !!streams.heartrate?.data?.length;
@@ -210,7 +213,7 @@ export default function ActivityModal({ activityId, onClose }: Props) {
                         <td className={styles.lapNum}>{i + 1}</td>
                         <td>{dur(s.moving_time)}</td>
                         <td>{s.average_speed > 0 ? pace(s.average_speed) + '/км' : '—'}</td>
-                        <td><span style={{ color: hrColor(s.average_heartrate) }}>{s.average_heartrate ? fmt(s.average_heartrate, 0) + ' bpm' : '—'}</span></td>
+                        <td><span style={{ color: hrColor(s.average_heartrate, hrZones?.heart_rate?.zones) }}>{s.average_heartrate ? fmt(s.average_heartrate, 0) + ' bpm' : '—'}</span></td>
                         <td>{(s.elevation_difference >= 0 ? '+' : '') + fmt(s.elevation_difference, 0)} м</td>
                       </tr>
                     ))}
@@ -232,8 +235,30 @@ export default function ActivityModal({ activityId, onClose }: Props) {
                         <td>{fmt(lap.distance / 1000)} км</td>
                         <td>{dur(lap.moving_time)}</td>
                         <td>{lap.average_speed > 0 ? pace(lap.average_speed) + '/км' : '—'}</td>
-                        <td><span style={{ color: hrColor(lap.average_heartrate) }}>{lap.average_heartrate ? fmt(lap.average_heartrate, 0) + ' bpm' : '—'}</span></td>
+                        <td><span style={{ color: hrColor(lap.average_heartrate, hrZones?.heart_rate?.zones) }}>{lap.average_heartrate ? fmt(lap.average_heartrate, 0) + ' bpm' : '—'}</span></td>
                         <td>{lap.average_cadence ? fmt(lap.average_cadence * 2, 0) + ' шаг/мин' : '—'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </>
+            )}
+
+            {/* Segment achievements */}
+            {detail.segment_efforts && detail.segment_efforts.length > 0 && (
+              <>
+                <div className={styles.sectionTitle}>🏆 Достижения на сегментах</div>
+                <table className={styles.table}>
+                  <thead><tr><th>Сегмент</th><th>Дист.</th><th>Время</th><th>Место</th></tr></thead>
+                  <tbody>
+                    {detail.segment_efforts.map((eff, i) => (
+                      <tr key={i}>
+                        <td>{eff.segment.name}</td>
+                        <td>{fmt(eff.distance / 1000, 2)} км</td>
+                        <td>{dur(eff.elapsed_time)}</td>
+                        <td>
+                          {eff.kom_rank ? `👑 KOM/QOM #${eff.kom_rank}` : eff.pr_rank === 1 ? '🥇 PR' : eff.pr_rank ? `PR #${eff.pr_rank}` : '—'}
+                        </td>
                       </tr>
                     ))}
                   </tbody>

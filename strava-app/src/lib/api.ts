@@ -1,4 +1,7 @@
-import type { StravaActivity, StravaStreams, StravaSegmentExplore } from '../types/strava';
+import type {
+  StravaActivity, StravaStreams, StravaSegmentExplore,
+  StravaAthleteStats, StravaAthleteZones,
+} from '../types/strava';
 
 // ─── localStorage activity cache ────────────────────────────────────────────
 const CACHE_KEY = 'strava_activities_cache';
@@ -27,10 +30,10 @@ export function clearActivityCache() {
 
 let cachedToken: string | null = null;
 let tokenExpiry  = 0;
+let tokenRequest: Promise<string> | null = null;
 
-export async function getAccessToken(): Promise<string> {
-  if (cachedToken && Date.now() / 1000 < tokenExpiry - 60) return cachedToken;
-  const res  = await fetch('/api/strava/token', { method: 'POST' });
+async function refreshAccessToken(): Promise<string> {
+  const res = await fetch('/api/strava/token', { method: 'POST' });
   if (!res.ok) {
     let detail = '';
     try {
@@ -49,6 +52,16 @@ export async function getAccessToken(): Promise<string> {
   cachedToken = data.access_token;
   tokenExpiry  = data.expires_at;
   return cachedToken;
+}
+
+export async function getAccessToken(): Promise<string> {
+  if (cachedToken && Date.now() / 1000 < tokenExpiry - 60) return cachedToken;
+  // Dedupe concurrent callers (e.g. several tabs fetching in parallel on page load)
+  // into a single in-flight /api/strava/token request instead of one each.
+  if (!tokenRequest) {
+    tokenRequest = refreshAccessToken().finally(() => { tokenRequest = null; });
+  }
+  return tokenRequest;
 }
 
 async function stravaFetch(path: string): Promise<Response> {
@@ -147,9 +160,33 @@ export async function fetchActivities(
 }
 
 export async function fetchActivityDetail(id: number): Promise<StravaActivity> {
-  const resp = await stravaFetch(`/activities/${id}`);
+  const resp = await stravaFetch(`/activities/${id}?include_all_efforts=true`);
   if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
   return resp.json() as Promise<StravaActivity>;
+}
+
+let cachedAthleteId: number | null = null;
+
+export async function fetchAthleteId(): Promise<number> {
+  if (cachedAthleteId !== null) return cachedAthleteId;
+  const resp = await stravaFetch('/athlete');
+  if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+  const data = await resp.json() as { id: number };
+  cachedAthleteId = data.id;
+  return data.id;
+}
+
+export async function fetchAthleteStats(): Promise<StravaAthleteStats> {
+  const id = await fetchAthleteId();
+  const resp = await stravaFetch(`/athletes/${id}/stats`);
+  if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+  return resp.json() as Promise<StravaAthleteStats>;
+}
+
+export async function fetchAthleteZones(): Promise<StravaAthleteZones | null> {
+  const resp = await stravaFetch('/athlete/zones');
+  if (!resp.ok) return null; // most likely missing profile:read_all scope
+  return resp.json() as Promise<StravaAthleteZones>;
 }
 
 export async function fetchActivityStreams(id: number): Promise<StravaStreams> {

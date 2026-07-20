@@ -8,6 +8,7 @@ const TABS = [
 { path: '/races',     icon: '🏁', label: 'Забеги' },
   { path: '/coach',     icon: '🤖', label: 'Тренер' },
   { path: '/route',     icon: '🗺', label: 'Маршрут' },
+  { path: '/trophies',  icon: '🏆', label: 'Трофеи' },
 ];
 
 export default function Header() {

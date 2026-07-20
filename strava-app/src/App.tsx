@@ -7,8 +7,9 @@ import AnalysisTab from './tabs/Analysis/index';
 import RacesTab from './tabs/Races/index';
 import CoachTab from './tabs/Coach/index';
 import RouteTab from './tabs/Route/index';
+import TrophiesTab from './tabs/Trophies/index';
 import { useStore } from './store/useStore';
-import { fetchActivities } from './lib/api';
+import { fetchActivities, fetchAthleteZones } from './lib/api';
 
 const SPLASH_KEY = 'splash_shown_v1';
 
@@ -32,7 +33,7 @@ function SplashScreen({ onDone }: { onDone: () => void }) {
 }
 
 export default function App() {
-  const { activities, activeDays, setActivities, setLoading, setLoadingText, setError } = useStore();
+  const { activities, activeDays, setActivities, setLoading, setLoadingText, setError, setHrZones } = useStore();
   const [showSplash, setShowSplash] = useState(() => !localStorage.getItem(SPLASH_KEY));
 
   useEffect(() => {
@@ -44,6 +45,11 @@ export default function App() {
       .then(acts => { if (acts.length) setActivities(acts); })
       .catch(e => setError(String(e)))
       .finally(() => setLoading(false));
+  }, []);
+
+  useEffect(() => {
+    // Falls back to null (handled by hrColor) if the token lacks profile:read_all.
+    fetchAthleteZones().then(setHrZones).catch(() => setHrZones(null));
   }, []);
 
   function handleSplashDone() {
@@ -63,6 +69,7 @@ export default function App() {
           <Route path="/races"     element={<RacesTab />} />
           <Route path="/coach"     element={<CoachTab />} />
           <Route path="/route"     element={<RouteTab />} />
+          <Route path="/trophies"  element={<TrophiesTab />} />
           <Route path="*"          element={<Navigate to="/" replace />} />
         </Routes>
       </main>
