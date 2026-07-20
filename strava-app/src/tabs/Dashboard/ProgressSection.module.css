@@ -1,10 +1,11 @@
 /* ── Goal progress card ── */
 .goalCard {
   background: var(--card);
-  border: 1px solid #272727;
-  border-radius: 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
   padding: 18px 20px;
   margin-bottom: 20px;
+  box-shadow: var(--shadow-sm);
 }
 .goalRow {
   display: flex;
@@ -24,20 +25,20 @@
 
 .goalsGrid4 { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px,1fr)); gap: 12px; }
 .goalCard4 {
-  background: #1a1a1a; border: 1px solid #272727; border-radius: 12px;
-  padding: 14px 16px; transition: border-color .15s;
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-md);
+  padding: 14px 16px; transition: border-color var(--t-fast) var(--ease), transform var(--t-base) var(--ease-out), box-shadow var(--t-base) var(--ease-out);
 }
-.goalCard4:hover { border-color: #3a3a3a; }
+.goalCard4:hover { border-color: var(--border-hover); transform: translateY(-2px); box-shadow: var(--shadow-md); }
 .goalCard4Title {
   font-family: 'Bebas Neue'; font-size: 20px; letter-spacing: 1px;
   color: var(--text); margin-bottom: 10px;
 }
 .goalMetricRow {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 5px 0; border-bottom: 1px solid #232323; font-size: 12px;
+  padding: 5px 0; border-bottom: 1px solid var(--border); font-size: 12px;
 }
 .goalMetricRow:last-child { border-bottom: none; }
-.goalMetricRowHi { margin-top: 2px; padding-top: 8px; border-top: 1px dashed #333; border-bottom: none; }
+.goalMetricRowHi { margin-top: 2px; padding-top: 8px; border-top: 1px dashed var(--border-hover); border-bottom: none; }
 .goalMetricLabel { color: var(--muted); }
 .goalMetricVal   { font-family: 'Space Mono'; font-size: 13px; color: var(--text); }
 .goalMiniDiffOk   { color: var(--green);  font-family: 'Space Mono'; font-size: 12px; font-weight: 600; }
@@ -49,16 +50,18 @@
   align-items: center;
   gap: 14px;
   background: var(--card);
-  border: 1px solid #272727;
-  border-radius: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
   padding: 13px 18px;
   margin-bottom: 20px;
   flex-wrap: wrap;
+  box-shadow: var(--shadow-sm);
 }
 .weekBarTitle { font-family: 'Bebas Neue'; font-size: 16px; letter-spacing: 1px; min-width: 130px; }
 .dots         { display: flex; gap: 8px; }
-.dot          { width: 16px; height: 16px; border-radius: 50%; }
+.dot          { width: 16px; height: 16px; border-radius: 50%; transition: transform var(--t-fast) var(--ease-out); }
+.dot:hover    { transform: scale(1.15); }
 .dotDone      { background: var(--green); }
-.dotMiss      { background: #f44336; }
-.dotFuture    { background: #222; border: 1.5px solid #3a3a3a; }
+.dotMiss      { background: var(--red); }
+.dotFuture    { background: var(--surface); border: 1.5px solid var(--border-hover); }
 .weekBarSub   { font-size: 12px; color: var(--muted); margin-left: auto; }
