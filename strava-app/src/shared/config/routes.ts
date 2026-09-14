@@ -2,6 +2,7 @@
 export const NAV_ITEMS = [
   { path: '/',          icon: '📊', label: 'Дашборд' },
   { path: '/plan',      icon: '🗓', label: 'План' },
+  { path: '/pace',      icon: '⏱', label: 'Темп' },
   { path: '/analysis',  icon: '📈', label: 'Анализ' },
   { path: '/races',     icon: '🏁', label: 'Забеги' },
   { path: '/coach',     icon: '🤖', label: 'Тренер' },

@@ -3,6 +3,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import type { ComponentType } from 'react';
 import { DashboardPage } from '@/pages/dashboard';
 import { PlanPage } from '@/pages/plan';
+import { PaceCalcPage } from '@/pages/pace-calc';
 import { AnalysisPage } from '@/pages/analysis';
 import { RacesPage } from '@/pages/races';
 import { CoachPage } from '@/pages/coach';
@@ -21,6 +22,7 @@ const SPLASH_KEY = 'splash_shown_v1';
 const PAGES: Record<AppPath, ComponentType> = {
   '/':          DashboardPage,
   '/plan':      PlanPage,
+  '/pace':      PaceCalcPage,
   '/analysis':  AnalysisPage,
   '/races':     RacesPage,
   '/coach':     CoachPage,
