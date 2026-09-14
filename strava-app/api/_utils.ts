@@ -22,3 +22,21 @@ export function requireEnv(name: string): string {
 
   return value;
 }
+
+// Minimal shape of Vercel's Node.js serverless request/response — only what the handlers use.
+export interface NodeRequest {
+  method?: string;
+  url?: string;
+  query: Record<string, string | string[] | undefined>;
+  headers: Record<string, string | string[] | undefined>;
+  body?: unknown;
+}
+
+export interface NodeResponse {
+  statusCode: number;
+  status(code: number): NodeResponse;
+  json(data: unknown): NodeResponse;
+  setHeader(name: string, value: string): NodeResponse;
+  write(chunk: string): boolean;
+  end(): void;
+}

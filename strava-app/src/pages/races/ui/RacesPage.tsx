@@ -172,7 +172,6 @@ export default function RacesPage() {
 
   useEffect(() => {
     loadActiup();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -185,7 +184,7 @@ export default function RacesPage() {
     const URL = 'https://api.actiup.net/v2/content/event/homepage?event_type=sports&limit=100&page=1';
     const today = new Date(); today.setHours(0, 0, 0, 0);
 
-    let items: Record<string, unknown>[] = [];
+    let items: Record<string, unknown>[];
     try {
       const res = await fetch(URL, { headers: { Accept: 'application/json' } });
       if (!res.ok) return;
@@ -236,7 +235,7 @@ export default function RacesPage() {
     const updated = { ...marks };
     if (!updated[id]) updated[id] = {};
     if (next) updated[id] = { ...updated[id], status: next };
-    else { const { status: _, ...rest } = updated[id]; updated[id] = rest; }
+    else { const rest = { ...updated[id] }; delete rest.status; updated[id] = rest; }
     updateMarks(updated);
   }
 

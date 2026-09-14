@@ -1,3 +1,5 @@
+import type { NodeRequest, NodeResponse } from '../_utils';
+
 function haversineM(a: [number, number], b: [number, number]): number {
   const radius = 6_371_000;
   const phi1 = a[0] * Math.PI / 180;
@@ -49,7 +51,7 @@ function detourWaypoint(
   ];
 }
 
-function errorJson(response: any, status: number, error: string, extra?: Record<string, unknown>) {
+function errorJson(response: NodeResponse, status: number, error: string, extra?: Record<string, unknown>) {
   return response.status(status).json({ error, ...extra });
 }
 
@@ -65,7 +67,7 @@ async function callORS(key: string, body: Record<string, unknown>): Promise<Resp
   });
 }
 
-export default async function handler(request: any, response: any) {
+export default async function handler(request: NodeRequest, response: NodeResponse) {
   if (request.method !== 'POST') {
     response.setHeader('Allow', 'POST');
     return errorJson(response, 405, 'Method Not Allowed');

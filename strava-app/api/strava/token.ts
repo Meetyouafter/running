@@ -1,4 +1,6 @@
-export default async function handler(request: any, response: any) {
+import type { NodeRequest, NodeResponse } from '../_utils';
+
+export default async function handler(request: NodeRequest, response: NodeResponse) {
   if (request.method !== 'POST') {
     response.setHeader('Allow', 'POST');
     return response.status(405).json({ error: 'Method Not Allowed' });

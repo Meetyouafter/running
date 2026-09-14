@@ -28,7 +28,6 @@ export default function ActivityModal({ activityId, onClose }: Props) {
 
   useEffect(() => {
     let cancelled = false;
-    setLoading(true); setError(null);
     Promise.all([fetchActivityDetail(activityId), fetchActivityStreams(activityId)])
       .then(([d, s]) => { if (!cancelled) { setDetail(d); setStreams(s); setLoading(false); } })
       .catch(e => { if (!cancelled) { setError(String(e)); setLoading(false); } });

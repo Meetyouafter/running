@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useActivitiesStore, fetchActivities, clearActivityCache, ctype, ICONS } from '@/entities/activity';
 import { useFiltersStore } from '../model/store';
+import { periodStartTs } from '../lib/period';
 import { PERIOD_OPTIONS } from '../config/periods';
 import styles from './FiltersPanel.module.css';
 
@@ -13,8 +14,7 @@ export default function FiltersPanel() {
     setLoading(true);
     setError(null);
     try {
-      const afterTs = days > 0 ? Math.floor((Date.now() - days * 86400000) / 1000) : null;
-      const acts = await fetchActivities(afterTs);
+      const acts = await fetchActivities(periodStartTs(days));
       if (!acts.length) { setError('Нет активностей за выбранный период.'); return; }
       setActivities(acts);
     } catch (e) {

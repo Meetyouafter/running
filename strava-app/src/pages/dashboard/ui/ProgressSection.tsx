@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { fetchActivityDetail, actPaceSec, type StravaActivity, type StravaBestEffort } from '@/entities/activity';
 import { TRAINING_PLAN, RACE_DATE, RACE_GOALS } from '@/entities/training-plan';
 import { paceSecToStr, addDays, weekMondayKey, durMinStr } from '@/shared/lib';
@@ -38,7 +38,11 @@ interface Props { activities: StravaActivity[] }
 
 export default function ProgressSection({ activities }: Props) {
   const today   = new Date().toISOString().slice(0, 10);
-  const runs    = activities.filter(a => a.type === 'Run' && a.distance >= 1000 && a.moving_time > 0);
+  const [now]   = useState(() => Date.now());
+  const runs    = useMemo(
+    () => activities.filter(a => a.type === 'Run' && a.distance >= 1000 && a.moving_time > 0),
+    [activities],
+  );
   const [records, setRecords] = useState<Record<string, Record_ | null>>({});
 
   useEffect(() => {
@@ -86,13 +90,13 @@ export default function ProgressSection({ activities }: Props) {
 
     if (runs.length) resolve();
     return () => { cancelled = true; };
-  }, [runs.map(r => r.id).join(',')]);
+  }, [runs]);
 
   if (!runs.length) return null;
 
   /* ── Predictions (Riegel from best recent-90-day effort) ── */
-  const recent90 = runs.filter(a => new Date(a.start_date_local) >= new Date(Date.now() - 90 * 86400000));
-  const daysToRace = Math.round((new Date(RACE_DATE).getTime() - Date.now()) / 86400000);
+  const recent90 = runs.filter(a => new Date(a.start_date_local) >= new Date(now - 90 * 86400000));
+  const daysToRace = Math.round((new Date(RACE_DATE).getTime() - now) / 86400000);
 
   function bestPredictionMin(targetM: number): number | null {
     if (!recent90.length) return null;

@@ -48,7 +48,7 @@ export default function ActivityList({ activities }: Props) {
       </div>
 
       {selectedId !== null && (
-        <ActivityModal activityId={selectedId} onClose={() => setSelectedId(null)} />
+        <ActivityModal key={selectedId} activityId={selectedId} onClose={() => setSelectedId(null)} />
       )}
     </>
   );

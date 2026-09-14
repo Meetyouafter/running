@@ -41,7 +41,7 @@ async function fetchOSMRoutes(swLat: number, swLng: number, neLat: number, neLng
   });
   const resp = await fetch(`/api/osm/routes?${params.toString()}`);
   const text = await resp.text();
-  let data: unknown = [];
+  let data: unknown;
   try {
     data = text ? JSON.parse(text) : [];
   } catch {
@@ -183,7 +183,7 @@ export default function RoutePage() {
     if (tab === 'popular' && segments === null && osmRoutes === null) {
       fetchPopular();
     }
-  }, [tab]);
+  }, [tab, segments, osmRoutes]);
 
   // click handler
   const handleMapClick = useCallback((e: L.LeafletMouseEvent) => {

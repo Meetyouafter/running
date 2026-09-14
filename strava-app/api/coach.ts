@@ -1,3 +1,5 @@
+import type { NodeRequest, NodeResponse } from './_utils';
+
 const GEMINI_MODEL = 'gemini-2.5-flash';
 
 interface Message {
@@ -10,7 +12,7 @@ function sse(data: unknown): string {
   return `data: ${payload}\n\n`;
 }
 
-export default async function handler(request: any, response: any) {
+export default async function handler(request: NodeRequest, response: NodeResponse) {
   if (request.method !== 'POST') {
     response.setHeader('Allow', 'POST');
     return response.status(405).json({ error: 'Method Not Allowed' });

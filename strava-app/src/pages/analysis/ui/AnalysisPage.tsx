@@ -66,6 +66,7 @@ export default function AnalysisPage() {
   const [geminiKey, setGeminiKey] = useState(loadGeminiKey);
   const [aiResult, setAiResult]   = useState('');
   const [aiBusy, setAiBusy]       = useState(false);
+  const [now] = useState(() => Date.now());
 
   if (!activities.length) {
     return (
@@ -79,7 +80,6 @@ export default function AnalysisPage() {
     .sort((a, b) => new Date(a.start_date_local).getTime() - new Date(b.start_date_local).getTime());
 
   const today = new Date().toISOString().slice(0, 10);
-  const now   = Date.now();
 
   const last30 = runs.filter(a => new Date(a.start_date_local) >= new Date(now - 30 * 86400000));
   const last90 = runs.filter(a => new Date(a.start_date_local) >= new Date(now - 90 * 86400000));

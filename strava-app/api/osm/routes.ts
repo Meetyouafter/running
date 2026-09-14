@@ -1,3 +1,5 @@
+import type { NodeRequest, NodeResponse } from '../_utils';
+
 function haversineM(a: [number, number], b: [number, number]): number {
   const radius = 6_371_000;
   const phi1 = a[0] * Math.PI / 180;
@@ -16,11 +18,11 @@ function coordsLengthM(coords: [number, number][]): number {
   return distance;
 }
 
-function errorJson(response: any, status: number, error: string) {
+function errorJson(response: NodeResponse, status: number, error: string) {
   return response.status(status).json({ error });
 }
 
-export default async function handler(request: any, response: any) {
+export default async function handler(request: NodeRequest, response: NodeResponse) {
   if (request.method !== 'GET') {
     response.setHeader('Allow', 'GET');
     return errorJson(response, 405, 'Method Not Allowed');

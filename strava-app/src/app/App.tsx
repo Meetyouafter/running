@@ -8,7 +8,7 @@ import { CoachPage } from '@/pages/coach';
 import { RoutePage } from '@/pages/route';
 import { TrophiesPage } from '@/pages/trophies';
 import { Header } from '@/widgets/header';
-import { useFiltersStore } from '@/features/activity-filters';
+import { useFiltersStore, periodStartTs } from '@/features/activity-filters';
 import { useActivitiesStore, fetchActivities } from '@/entities/activity';
 import { useAthleteStore, fetchAthleteZones } from '@/entities/athlete';
 import { SplashScreen } from './ui/SplashScreen';
@@ -16,24 +16,22 @@ import { SplashScreen } from './ui/SplashScreen';
 const SPLASH_KEY = 'splash_shown_v1';
 
 export default function App() {
-  const { activities, setActivities, setLoading, setLoadingText, setError } = useActivitiesStore();
-  const { activeDays } = useFiltersStore();
-  const { setHrZones } = useAthleteStore();
   const [showSplash, setShowSplash] = useState(() => !localStorage.getItem(SPLASH_KEY));
 
   useEffect(() => {
+    const { activities, setActivities, setLoading, setLoadingText, setError } = useActivitiesStore.getState();
+    const { activeDays } = useFiltersStore.getState();
     if (activities.length > 0) return; // already loaded (e.g. from Dashboard's own refresh)
     setLoading(true);
     setLoadingText('Загружаю активности...');
-    const afterTs = activeDays > 0 ? Math.floor((Date.now() - activeDays * 86400000) / 1000) : null;
-    fetchActivities(afterTs, (n) => setLoadingText(`Загружаю... ${n} активностей`))
+    fetchActivities(periodStartTs(activeDays), (n) => setLoadingText(`Загружаю... ${n} активностей`))
       .then(acts => { if (acts.length) setActivities(acts); })
       .catch(e => setError(String(e)))
       .finally(() => setLoading(false));
   }, []);
 
   useEffect(() => {
-    // Falls back to null (handled by hrColor) if the token lacks profile:read_all.
+    const { setHrZones } = useAthleteStore.getState();
     fetchAthleteZones().then(setHrZones).catch(() => setHrZones(null));
   }, []);
 
