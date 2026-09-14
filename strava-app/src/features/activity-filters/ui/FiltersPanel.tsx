@@ -1,37 +1,21 @@
 import { useState } from 'react';
-import { useActivitiesStore, fetchActivities, clearActivityCache, ctype, ICONS } from '@/entities/activity';
+import { useActivitiesStore, ctype, ICONS } from '@/entities/activity';
 import { useFiltersStore } from '../model/store';
-import { periodStartTs } from '../lib/period';
 import { PERIOD_OPTIONS } from '../config/periods';
 import styles from './FiltersPanel.module.css';
 
 export default function FiltersPanel() {
-  const { activities, loading, setLoading, setError, setActivities } = useActivitiesStore();
+  const { activities, loading, load } = useActivitiesStore();
   const { activeFilter, setActiveFilter, activeDays, setActiveDays } = useFiltersStore();
   const [open, setOpen] = useState(false);
 
-  async function loadData(days: number) {
-    setLoading(true);
-    setError(null);
-    try {
-      const acts = await fetchActivities(periodStartTs(days));
-      if (!acts.length) { setError('Нет активностей за выбранный период.'); return; }
-      setActivities(acts);
-    } catch (e) {
-      setError(String(e));
-    } finally {
-      setLoading(false);
-    }
-  }
-
   function onPeriodChange(days: number) {
     setActiveDays(days);
-    loadData(days);
+    load(days);
   }
 
   function onRefresh() {
-    clearActivityCache();
-    loadData(activeDays);
+    load(activeDays, { clearCache: true });
   }
 
   const counts: Record<string, number> = {};

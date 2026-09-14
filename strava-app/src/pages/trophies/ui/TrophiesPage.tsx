@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { fetchAthleteStats, type StravaAthleteStats, type StravaActivityTotals } from '@/entities/athlete';
+import { describeStravaError } from '@/shared/api';
 import { fmt } from '@/shared/lib';
 import styles from './TrophiesPage.module.css';
 
@@ -44,7 +45,7 @@ export default function TrophiesPage() {
   useEffect(() => {
     fetchAthleteStats()
       .then(setStats)
-      .catch(e => setError(String(e)))
+      .catch(e => setError(describeStravaError(e)))
       .finally(() => setLoading(false));
   }, []);
 

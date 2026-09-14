@@ -6,6 +6,7 @@ import {
 import { useAthleteStore } from '@/entities/athlete';
 import { usePlanStore, findSessionForDate } from '@/entities/training-plan';
 import { fmt, dur, pace, hrColor, dateStr, paceSecToStr, decodePolyline } from '@/shared/lib';
+import { describeStravaError } from '@/shared/api';
 import { LineChart } from '@/shared/ui';
 import { detectIntervals } from '../lib/detectIntervals';
 import { sampleByDistance } from '../lib/metrics';
@@ -33,7 +34,7 @@ export default function ActivityModal({ activityId, onClose }: Props) {
     let cancelled = false;
     Promise.all([fetchActivityDetail(activityId), fetchActivityStreams(activityId)])
       .then(([d, s]) => { if (!cancelled) { setDetail(d); setStreams(s); setLoading(false); } })
-      .catch(e => { if (!cancelled) { setError(String(e)); setLoading(false); } });
+      .catch(e => { if (!cancelled) { setError(describeStravaError(e)); setLoading(false); } });
     return () => { cancelled = true; };
   }, [activityId]);
 

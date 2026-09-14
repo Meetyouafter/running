@@ -4,6 +4,6 @@ export type {
 } from './model/types';
 export { useActivitiesStore } from './model/store';
 export {
-  fetchActivities, clearActivityCache, fetchActivityDetail, fetchActivityStreams, fetchSegmentsExplore,
+  fetchActivityDetail, fetchActivityStreams, fetchSegmentsExplore,
 } from './api/activities';
 export { ICONS, ctype, actPaceSec } from './lib/activity';

@@ -3,6 +3,7 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import styles from './RoutePage.module.css';
 import { useActivitiesStore, fetchSegmentsExplore, type StravaSegmentExplore } from '@/entities/activity';
+import { describeStravaError } from '@/shared/api';
 import { decodePolyline } from '@/shared/lib';
 
 type LatLng = [number, number];
@@ -299,7 +300,7 @@ export default function RoutePage() {
 
     fetchSegmentsExplore(sw[0], sw[1], ne[0], ne[1])
       .then(setSegments)
-      .catch(e => setSegError(String(e)))
+      .catch(e => setSegError(describeStravaError(e)))
       .finally(() => setSegLoading(false));
 
     fetchOSMRoutes(sw[0], sw[1], ne[0], ne[1])

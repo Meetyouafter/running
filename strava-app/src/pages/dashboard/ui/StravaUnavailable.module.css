@@ -1,0 +1,15 @@
+.box {
+  max-width: 520px; margin: 60px auto; padding: 32px 28px; text-align: center;
+  background: var(--card); border: 1px solid rgba(248,113,113,0.25); border-radius: var(--r-lg);
+  box-shadow: var(--shadow-sm);
+}
+.icon   { font-size: 34px; margin-bottom: 10px; }
+.title  { font-size: 17px; font-weight: 600; margin-bottom: 10px; }
+.reason { font-size: 13px; line-height: 1.6; color: var(--muted2); margin-bottom: 20px; }
+.retry {
+  background: var(--orange); color: #fff; border: none; border-radius: 99px;
+  font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600; padding: 9px 22px; cursor: pointer;
+  transition: opacity var(--t-fast) var(--ease), transform var(--t-fast) var(--ease);
+}
+.retry:hover { opacity: .9; transform: translateY(-1px); }
+.retry:disabled { opacity: .5; cursor: not-allowed; transform: none; }

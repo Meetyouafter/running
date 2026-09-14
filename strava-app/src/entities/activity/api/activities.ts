@@ -14,6 +14,17 @@ interface ActivityCache {
 const loadCache = () => readStorage<ActivityCache | null>(CACHE_KEY, null);
 const saveCache = (cache: ActivityCache) => writeStorage(CACHE_KEY, cache);
 export const clearActivityCache = () => removeStorage(CACHE_KEY);
+
+const startTs = (a: StravaActivity) => Math.floor(new Date(a.start_date).getTime() / 1000);
+const inPeriod = (acts: StravaActivity[], afterTs: number | null) =>
+  afterTs === null ? acts : acts.filter(a => startTs(a) >= afterTs);
+
+/** Whatever is cached for the period (may be stale) — used when Strava is unreachable. */
+export function getCachedActivities(afterTs: number | null): { activities: StravaActivity[]; cachedAt: number } | null {
+  const cache = loadCache();
+  if (!cache?.activities.length) return null;
+  return { activities: inPeriod(cache.activities, afterTs), cachedAt: cache.lastFetchedAt * 1000 };
+}
 // ────────────────────────────────────────────────────────────────────────────
 
 async function fetchActivitiesFromStrava(
@@ -24,11 +35,9 @@ async function fetchActivitiesFromStrava(
   let before: number | null = null;
 
   while (true) {
-    const resp = await stravaFetch(
+    const batch = await stravaFetch<StravaActivity[]>(
       `/athlete/activities?per_page=200${before ? `&before=${before}` : ''}${afterTs ? `&after=${afterTs}` : ''}`
     );
-    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-    const batch = await resp.json() as StravaActivity[];
     if (!Array.isArray(batch) || batch.length === 0) break;
 
     all.push(...batch);
@@ -49,10 +58,7 @@ export async function fetchActivities(
 
   // Use cache if it covers the requested period
   if (cache && cache.activities.length > 0) {
-    const oldestCached = cache.activities.reduce(
-      (min, a) => Math.min(min, Math.floor(new Date(a.start_date).getTime() / 1000)),
-      Infinity
-    );
+    const oldestCached = Math.min(...cache.activities.map(startTs));
     const cacheValid = afterTs === null
       ? cache.coversAllTime === true
       : oldestCached <= afterTs;
@@ -67,17 +73,12 @@ export async function fetchActivities(
           ...newActivities.filter(a => !existingIds.has(a.id)),
           ...cache.activities,
         ];
-        const newest = Math.floor(new Date(newActivities[0].start_date).getTime() / 1000);
-        saveCache({ activities: merged, lastFetchedAt: newest, coversAllTime: cache.coversAllTime });
-        return merged.filter(a =>
-          afterTs === null || Math.floor(new Date(a.start_date).getTime() / 1000) >= afterTs
-        );
+        saveCache({ activities: merged, lastFetchedAt: startTs(newActivities[0]), coversAllTime: cache.coversAllTime });
+        return inPeriod(merged, afterTs);
       }
 
       // Cache is up to date — filter to requested period
-      return cache.activities.filter(a =>
-        afterTs === null || Math.floor(new Date(a.start_date).getTime() / 1000) >= afterTs
-      );
+      return inPeriod(cache.activities, afterTs);
     }
   }
 
@@ -86,36 +87,30 @@ export async function fetchActivities(
   const activities = await fetchActivitiesFromStrava(afterTs, onProgress);
 
   if (activities.length > 0) {
-    const newest = Math.floor(new Date(activities[0].start_date).getTime() / 1000);
     const existing = cache?.activities ?? [];
     const existingIds = new Set(existing.map(a => a.id));
     const merged = [...activities.filter(a => !existingIds.has(a.id)), ...existing];
-    saveCache({ activities: merged, lastFetchedAt: newest, coversAllTime: afterTs === null });
+    saveCache({ activities: merged, lastFetchedAt: startTs(activities[0]), coversAllTime: afterTs === null });
   }
 
   return activities;
 }
 
-export async function fetchActivityDetail(id: number): Promise<StravaActivity> {
-  const resp = await stravaFetch(`/activities/${id}?include_all_efforts=true`);
-  if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-  return resp.json() as Promise<StravaActivity>;
+export function fetchActivityDetail(id: number): Promise<StravaActivity> {
+  return stravaFetch<StravaActivity>(`/activities/${id}?include_all_efforts=true`);
 }
 
-export async function fetchActivityStreams(id: number): Promise<StravaStreams> {
-  const resp = await stravaFetch(
+/** Streams are optional extras — a failure just means no charts. */
+export function fetchActivityStreams(id: number): Promise<StravaStreams> {
+  return stravaFetch<StravaStreams>(
     `/activities/${id}/streams?keys=heartrate,cadence,watts,velocity_smooth,altitude,distance&key_by_type=true`
-  );
-  if (!resp.ok) return {};
-  return resp.json() as Promise<StravaStreams>;
+  ).catch(() => ({}));
 }
 
 export async function fetchSegmentsExplore(
   swLat: number, swLng: number, neLat: number, neLng: number,
 ): Promise<StravaSegmentExplore[]> {
   const bounds = `${swLat},${swLng},${neLat},${neLng}`;
-  const resp = await stravaFetch(`/segments/explore?bounds=${bounds}&activity_type=running`);
-  if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-  const data = await resp.json() as { segments: StravaSegmentExplore[] };
+  const data = await stravaFetch<{ segments: StravaSegmentExplore[] }>(`/segments/explore?bounds=${bounds}&activity_type=running`);
   return data.segments;
 }

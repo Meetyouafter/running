@@ -5,10 +5,11 @@ import { BarChart } from '@/shared/ui';
 import StatsGrid from './StatsGrid';
 import ActivityList from './ActivityList';
 import ProgressSection from './ProgressSection';
+import StravaUnavailable from './StravaUnavailable';
 import styles from './DashboardPage.module.css';
 
 export default function DashboardPage() {
-  const { activities, loading, error } = useActivitiesStore();
+  const { activities, loading, error, warning, load } = useActivitiesStore();
   const { activeFilter, activeDays } = useFiltersStore();
 
   const filtered: StravaActivity[] = activeFilter === 'all'
@@ -47,7 +48,11 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {error && !loading && <div className="error-msg">{error}</div>}
+      {error && !loading && (
+        <StravaUnavailable reason={error} retrying={loading} onRetry={() => load(activeDays)} />
+      )}
+
+      {warning && !loading && <div className="warning-msg">⚠️ {warning}</div>}
 
       {!loading && !error && activities.length === 0 && (
         <div className="loading-state">

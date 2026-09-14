@@ -10,8 +10,8 @@ import { CoachPage } from '@/pages/coach';
 import { RoutePage } from '@/pages/route';
 import { TrophiesPage } from '@/pages/trophies';
 import { Header } from '@/widgets/header';
-import { useFiltersStore, periodStartTs } from '@/features/activity-filters';
-import { useActivitiesStore, fetchActivities } from '@/entities/activity';
+import { useFiltersStore } from '@/features/activity-filters';
+import { useActivitiesStore } from '@/entities/activity';
 import { useAthleteStore, fetchAthleteZones } from '@/entities/athlete';
 import { NAV_ITEMS, type AppPath } from '@/shared/config';
 import { SplashScreen } from './ui/SplashScreen';
@@ -34,15 +34,9 @@ export default function App() {
   const [showSplash, setShowSplash] = useState(() => !localStorage.getItem(SPLASH_KEY));
 
   useEffect(() => {
-    const { activities, setActivities, setLoading, setLoadingText, setError } = useActivitiesStore.getState();
-    const { activeDays } = useFiltersStore.getState();
+    const { activities, load } = useActivitiesStore.getState();
     if (activities.length > 0) return; // already loaded (e.g. from Dashboard's own refresh)
-    setLoading(true);
-    setLoadingText('Загружаю активности...');
-    fetchActivities(periodStartTs(activeDays), (n) => setLoadingText(`Загружаю... ${n} активностей`))
-      .then(acts => { if (acts.length) setActivities(acts); })
-      .catch(e => setError(String(e)))
-      .finally(() => setLoading(false));
+    load(useFiltersStore.getState().activeDays);
   }, []);
 
   useEffect(() => {

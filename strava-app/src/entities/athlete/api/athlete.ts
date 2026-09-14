@@ -5,22 +5,17 @@ let cachedAthleteId: number | null = null;
 
 export async function fetchAthleteId(): Promise<number> {
   if (cachedAthleteId !== null) return cachedAthleteId;
-  const resp = await stravaFetch('/athlete');
-  if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-  const data = await resp.json() as { id: number };
-  cachedAthleteId = data.id;
-  return data.id;
+  const { id } = await stravaFetch<{ id: number }>('/athlete');
+  cachedAthleteId = id;
+  return id;
 }
 
 export async function fetchAthleteStats(): Promise<StravaAthleteStats> {
   const id = await fetchAthleteId();
-  const resp = await stravaFetch(`/athletes/${id}/stats`);
-  if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-  return resp.json() as Promise<StravaAthleteStats>;
+  return stravaFetch<StravaAthleteStats>(`/athletes/${id}/stats`);
 }
 
-export async function fetchAthleteZones(): Promise<StravaAthleteZones | null> {
-  const resp = await stravaFetch('/athlete/zones');
-  if (!resp.ok) return null; // most likely missing profile:read_all scope
-  return resp.json() as Promise<StravaAthleteZones>;
+/** Null when unavailable (most likely missing profile:read_all scope) — hrColor falls back to defaults. */
+export function fetchAthleteZones(): Promise<StravaAthleteZones | null> {
+  return stravaFetch<StravaAthleteZones>('/athlete/zones').catch(() => null);
 }
