@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { useActivitiesStore, actPaceSec, type StravaActivity } from '@/entities/activity';
 import {
-  TRAINING_PLAN, TYPE_LABELS, TYPE_COLORS, RACE_DATE, RACE_TARGET_MIN, RACE_DIST_KM, buildActivityMap,
+  usePlanStore, TYPE_LABELS, TYPE_COLORS, RACE_DATE, RACE_TARGET_MIN, RACE_DIST_KM, buildActivityMap,
   type PlanSession,
 } from '@/entities/training-plan';
-import { paceSecToStr, fmt, weekMondayKey, escHtml } from '@/shared/lib';
-import { askGemini, loadGeminiKey, saveGeminiKey } from '@/shared/api';
+import { AiAnalysisBlock } from '@/features/ai-analysis';
+import { paceSecToStr, fmt, weekMondayKey } from '@/shared/lib';
 import { LineChart, BarChart } from '@/shared/ui';
 import styles from './AnalysisPage.module.css';
 
@@ -63,9 +63,7 @@ function scoreSession(plan: PlanSession, act: StravaActivity | null): { status: 
 /* ─── AI Analysis ─── */
 export default function AnalysisPage() {
   const { activities } = useActivitiesStore();
-  const [geminiKey, setGeminiKey] = useState(loadGeminiKey);
-  const [aiResult, setAiResult]   = useState('');
-  const [aiBusy, setAiBusy]       = useState(false);
+  const { plan: trainingPlan } = usePlanStore();
   const [now] = useState(() => Date.now());
 
   if (!activities.length) {
@@ -110,10 +108,10 @@ export default function AnalysisPage() {
   });
 
   // Build activity map once — each run matched to at most one plan session
-  const actMap = buildActivityMap(runs, TRAINING_PLAN);
+  const actMap = buildActivityMap(runs, trainingPlan);
 
   // Plan vs Fact
-  const pvfRows = TRAINING_PLAN.map(plan => {
+  const pvfRows = trainingPlan.map(plan => {
     const act   = actMap.get(plan.date) ?? null;
     const score = scoreSession(plan, act);
     const actStr = act
@@ -130,7 +128,7 @@ export default function AnalysisPage() {
 
   // Week compliance
   const weekMap: Record<number, { total: number; done: number }> = {};
-  TRAINING_PLAN.forEach(plan => {
+  trainingPlan.forEach(plan => {
     if (plan.date > today) return;
     if (!weekMap[plan.week]) weekMap[plan.week] = { total: 0, done: 0 };
     weekMap[plan.week].total++;
@@ -182,7 +180,7 @@ export default function AnalysisPage() {
     const km = a.distance / 1000;
     const p  = actPaceSec(a);
     const hr = a.average_heartrate || 0;
-    const plan = TRAINING_PLAN.find(pl => pl.date === a.start_date_local.slice(0, 10));
+    const plan = trainingPlan.find(pl => pl.date === a.start_date_local.slice(0, 10));
     if (plan && ['interval', 'tempo', 'race-p'].includes(plan.type)) {
       hardKm += Math.min(plan.targetDist * 0.55, km);
       easyKm += km - Math.min(plan.targetDist * 0.55, km);
@@ -208,29 +206,13 @@ export default function AnalysisPage() {
   const runSummary = runs.slice(-30).map(a =>
     `${a.start_date_local.slice(0, 10)} | ${fmt(a.distance / 1000, 1)}км | ${paceSecToStr(Math.round(actPaceSec(a)))}/км${a.average_heartrate ? ' | ЧСС ' + Math.round(a.average_heartrate) : ''}`
   ).reverse().join('\n');
-  const planFact = TRAINING_PLAN.filter(p => p.date <= today).map(plan => {
+  const planFact = trainingPlan.filter(p => p.date <= today).map(plan => {
     const act   = actMap.get(plan.date) ?? null;
     const score = scoreSession(plan, act);
     return `${plan.date} ${plan.title}: план ${plan.desc} → ${score.emoji} ${act ? fmt(act.distance / 1000, 1) + 'км @ ' + paceSecToStr(Math.round(actPaceSec(act))) + '/км' : 'пропущено'}`;
   }).join('\n') || '(план ещё не начался)';
 
-  const aiPrompt = `Ты тренер по бегу. Проанализируй подготовку.\n\nЦЕЛЬ: ${RACE_DIST_KM} км за ${RACE_TARGET_MIN} минут к ${RACE_DATE}.\n\nТЕКУЩИЕ МЕТРИКИ:\n- Лучший темп на 5 км: 5:22/км (ЧСС 153)\n- Ср. темп лёгких (30 дней): ${avgEasyPace ? paceSecToStr(Math.round(avgEasyPace)) : '-'}/км\n- Объём за 30 дней: ${fmt(totalKm30, 0)} км (~${fmt(avgKmWeek, 0)} км/нед)\n- Расчётный 10 км: ${estimated10k ? fmt(estimated10k, 1) + ' мин' : 'нет данных'}\n\nПОСЛЕДНИЕ 30 ПРОБЕЖЕК:\n${runSummary}\n\nПЛАН vs ФАКТ:\n${planFact}\n\nОтветь по-русски:\n### Общая оценка\n### Что идёт хорошо\n### Что вызывает вопросы\n### Ключевые выводы\n### Корректировка плана\nБудь конкретен, давай точные темпы.`;
-
-  async function runAI() {
-    if (!geminiKey) { setAiResult('⚠️ Вставь Gemini API ключ'); return; }
-    saveGeminiKey(geminiKey);
-    setAiBusy(true);
-    setAiResult('...');
-    try {
-      let text = escHtml(await askGemini(geminiKey, aiPrompt));
-      text = text.replace(/###\s*(.+)/g, '<h3 style="font-family:Bebas Neue;font-size:16px;letter-spacing:1px;color:var(--orange);margin:14px 0 6px">$1</h3>');
-      setAiResult(text);
-    } catch (e) {
-      setAiResult(`<span style="color:#f44336">Ошибка: ${escHtml(String(e))}</span>`);
-    } finally {
-      setAiBusy(false);
-    }
-  }
+  const buildAiPrompt = () => `Ты тренер по бегу. Проанализируй подготовку.\n\nЦЕЛЬ: ${RACE_DIST_KM} км за ${RACE_TARGET_MIN} минут к ${RACE_DATE}.\n\nТЕКУЩИЕ МЕТРИКИ:\n- Лучший темп на 5 км: 5:22/км (ЧСС 153)\n- Ср. темп лёгких (30 дней): ${avgEasyPace ? paceSecToStr(Math.round(avgEasyPace)) : '-'}/км\n- Объём за 30 дней: ${fmt(totalKm30, 0)} км (~${fmt(avgKmWeek, 0)} км/нед)\n- Расчётный 10 км: ${estimated10k ? fmt(estimated10k, 1) + ' мин' : 'нет данных'}\n\nПОСЛЕДНИЕ 30 ПРОБЕЖЕК:\n${runSummary}\n\nПЛАН vs ФАКТ:\n${planFact}\n\nОтветь по-русски:\n### Общая оценка\n### Что идёт хорошо\n### Что вызывает вопросы\n### Ключевые выводы\n### Корректировка плана\nБудь конкретен, давай точные темпы.`;
 
   return (
     <div style={{ padding: '20px 28px' }}>
@@ -364,32 +346,11 @@ export default function AnalysisPage() {
         </table>
       </div>
 
-      {/* AI Analysis */}
-      <div className={styles.aiBlock}>
-        <div className={styles.aiBlockHeader}>
-          <div style={{ fontFamily: 'Bebas Neue', fontSize: 22, letterSpacing: 1 }}>✦ AI-анализ подготовки</div>
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center', flex: 1, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
-            <input
-              type="password"
-              value={geminiKey}
-              onChange={e => { setGeminiKey(e.target.value); saveGeminiKey(e.target.value); }}
-              placeholder="Gemini API key..."
-              style={{ background: '#111', border: '1px solid #333', borderRadius: 7, color: 'var(--text)', fontSize: 11, padding: '7px 10px', outline: 'none', minWidth: 160 }}
-            />
-            <button
-              className={styles.aiBtn}
-              disabled={aiBusy}
-              onClick={runAI}
-            >
-              {aiBusy ? '...' : '✦ Анализировать'}
-            </button>
-          </div>
-        </div>
-        {aiResult
-          ? <div className={styles.aiResponse} dangerouslySetInnerHTML={{ __html: aiResult }} />
-          : <div style={{ color: 'var(--muted)', fontSize: 13, textAlign: 'center', padding: '24px 0' }}>Нажми «Анализировать» для AI-разбора подготовки</div>
-        }
-      </div>
+      <AiAnalysisBlock
+        title="✦ AI-анализ подготовки"
+        placeholder="Нажми «Анализировать» для AI-разбора подготовки"
+        buildPrompt={buildAiPrompt}
+      />
 
     </div>
   );

@@ -18,5 +18,6 @@
 }
 .btn:hover { opacity: .88; transform: translateY(-1px); }
 .btn:disabled { opacity: .4; cursor: not-allowed; transform: none; }
-.out { font-size: 13px; line-height: 1.8; color: var(--text); white-space: pre-wrap; margin-top: 12px; }
-.placeholder { color: var(--muted); font-size: 12px; }
+.out { font-size: 13px; line-height: 1.8; color: var(--text); margin-top: 12px; }
+.error { color: var(--red); font-size: 13px; margin-top: 12px; }
+.placeholder { color: var(--muted); font-size: 12px; text-align: center; padding: 12px 0; }

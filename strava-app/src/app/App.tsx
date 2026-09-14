@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
+import type { ComponentType } from 'react';
 import { DashboardPage } from '@/pages/dashboard';
 import { PlanPage } from '@/pages/plan';
 import { AnalysisPage } from '@/pages/analysis';
@@ -11,9 +12,21 @@ import { Header } from '@/widgets/header';
 import { useFiltersStore, periodStartTs } from '@/features/activity-filters';
 import { useActivitiesStore, fetchActivities } from '@/entities/activity';
 import { useAthleteStore, fetchAthleteZones } from '@/entities/athlete';
+import { NAV_ITEMS, type AppPath } from '@/shared/config';
 import { SplashScreen } from './ui/SplashScreen';
 
 const SPLASH_KEY = 'splash_shown_v1';
+
+// One page per nav item; the type guarantees every route in NAV_ITEMS has a page.
+const PAGES: Record<AppPath, ComponentType> = {
+  '/':          DashboardPage,
+  '/plan':      PlanPage,
+  '/analysis':  AnalysisPage,
+  '/races':     RacesPage,
+  '/coach':     CoachPage,
+  '/route':     RoutePage,
+  '/trophies':  TrophiesPage,
+};
 
 export default function App() {
   const [showSplash, setShowSplash] = useState(() => !localStorage.getItem(SPLASH_KEY));
@@ -46,13 +59,10 @@ export default function App() {
       <Header />
       <main style={{ flex: 1 }}>
         <Routes>
-          <Route path="/"          element={<DashboardPage />} />
-          <Route path="/plan"      element={<PlanPage />} />
-          <Route path="/analysis"  element={<AnalysisPage />} />
-          <Route path="/races"     element={<RacesPage />} />
-          <Route path="/coach"     element={<CoachPage />} />
-          <Route path="/route"     element={<RoutePage />} />
-          <Route path="/trophies"  element={<TrophiesPage />} />
+          {NAV_ITEMS.map(({ path }) => {
+            const Page = PAGES[path];
+            return <Route key={path} path={path} element={<Page />} />;
+          })}
           <Route path="*"          element={<Navigate to="/" replace />} />
         </Routes>
       </main>

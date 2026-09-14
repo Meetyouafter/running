@@ -1,9 +1,7 @@
 const ZONE_COLORS = ['#22c55e', '#3b82f6', '#eab308', '#ff9800', '#f44336'];
 
 // Structural zone shape so this helper doesn't depend on the Strava athlete types.
-export interface HrZoneRange { min: number; max: number }
-
-export function hrColor(hr?: number | null, zones?: HrZoneRange[] | null): string {
+export function hrColor(hr?: number | null, zones?: { max: number }[] | null): string {
   if (!hr) return '#666';
   if (zones && zones.length) {
     for (let i = 0; i < zones.length; i++) {

@@ -27,10 +27,6 @@ export function dateStr(iso: string): string {
   return new Date(y, m - 1, d).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
-export function escHtml(s: string): string {
-  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-}
-
 // mm:ss for <1h, h:mm:ss for ≥1h — used for pace predictions with sub-minute precision.
 export function durMinStr(totalMin: number): string {
   const totalSec = Math.round(totalMin * 60);

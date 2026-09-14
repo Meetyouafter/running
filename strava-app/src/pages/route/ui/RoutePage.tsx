@@ -3,6 +3,7 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import styles from './RoutePage.module.css';
 import { useActivitiesStore, fetchSegmentsExplore, type StravaSegmentExplore } from '@/entities/activity';
+import { decodePolyline } from '@/shared/lib';
 
 type LatLng = [number, number];
 type ClickMode = 'start' | 'end' | 'waypoint' | 'idle';
@@ -52,21 +53,6 @@ async function fetchOSMRoutes(swLat: number, swLng: number, neLat: number, neLng
     throw new Error(err.error || `OSM API: ${resp.status}`);
   }
   return data as OSMRoute[];
-}
-
-function decodePolyline(encoded: string): LatLng[] {
-  const pts: LatLng[] = [];
-  let idx = 0, lat = 0, lng = 0;
-  while (idx < encoded.length) {
-    let b, shift = 0, result = 0;
-    do { b = encoded.charCodeAt(idx++) - 63; result |= (b & 0x1f) << shift; shift += 5; } while (b >= 0x20);
-    lat += result & 1 ? ~(result >> 1) : result >> 1;
-    shift = 0; result = 0;
-    do { b = encoded.charCodeAt(idx++) - 63; result |= (b & 0x1f) << shift; shift += 5; } while (b >= 0x20);
-    lng += result & 1 ? ~(result >> 1) : result >> 1;
-    pts.push([lat / 1e5, lng / 1e5]);
-  }
-  return pts;
 }
 
 function buildGpx(coords: LatLng[], name: string, durationS: number) {

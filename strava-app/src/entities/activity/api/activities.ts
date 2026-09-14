@@ -1,4 +1,5 @@
 import { stravaFetch } from '@/shared/api';
+import { readStorage, writeStorage, removeStorage } from '@/shared/lib';
 import type { StravaActivity, StravaStreams, StravaSegmentExplore } from '../model/types';
 
 // ─── localStorage activity cache ────────────────────────────────────────────
@@ -10,20 +11,9 @@ interface ActivityCache {
   coversAllTime?: boolean;
 }
 
-function loadCache(): ActivityCache | null {
-  try {
-    const raw = localStorage.getItem(CACHE_KEY);
-    return raw ? (JSON.parse(raw) as ActivityCache) : null;
-  } catch { return null; }
-}
-
-function saveCache(cache: ActivityCache) {
-  try { localStorage.setItem(CACHE_KEY, JSON.stringify(cache)); } catch { /* quota */ }
-}
-
-export function clearActivityCache() {
-  try { localStorage.removeItem(CACHE_KEY); } catch { /* ignore */ }
-}
+const loadCache = () => readStorage<ActivityCache | null>(CACHE_KEY, null);
+const saveCache = (cache: ActivityCache) => writeStorage(CACHE_KEY, cache);
+export const clearActivityCache = () => removeStorage(CACHE_KEY);
 // ────────────────────────────────────────────────────────────────────────────
 
 async function fetchActivitiesFromStrava(

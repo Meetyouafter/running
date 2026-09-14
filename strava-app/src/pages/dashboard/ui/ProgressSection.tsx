@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { fetchActivityDetail, actPaceSec, type StravaActivity, type StravaBestEffort } from '@/entities/activity';
-import { TRAINING_PLAN, RACE_DATE, RACE_GOALS } from '@/entities/training-plan';
-import { paceSecToStr, addDays, weekMondayKey, durMinStr } from '@/shared/lib';
+import { usePlanStore, RACE_DATE, RACE_GOALS } from '@/entities/training-plan';
+import { paceSecToStr, addDays, weekMondayKey, durMinStr, readStorage, writeStorage } from '@/shared/lib';
 import { LineChart } from '@/shared/ui';
 import styles from './ProgressSection.module.css';
 
@@ -25,12 +25,9 @@ const GOAL_DISTANCES: { distKm: number; label: string; effortName: string; minD:
 const PR_CACHE_KEY = 'strava_pr_cache';
 const CANDIDATES_PER_RANGE = 3;
 
-function loadPrCache(): Record<number, StravaBestEffort[]> {
-  try { return JSON.parse(localStorage.getItem(PR_CACHE_KEY) || '{}'); } catch { return {}; }
-}
-function savePrCache(cache: Record<number, StravaBestEffort[]>) {
-  try { localStorage.setItem(PR_CACHE_KEY, JSON.stringify(cache)); } catch { /* quota */ }
-}
+type PrCache = Record<number, StravaBestEffort[]>;
+const loadPrCache = () => readStorage<PrCache>(PR_CACHE_KEY, {});
+const savePrCache = (cache: PrCache) => writeStorage(PR_CACHE_KEY, cache);
 
 interface Record_ { min: number; date: string }
 
@@ -39,6 +36,7 @@ interface Props { activities: StravaActivity[] }
 export default function ProgressSection({ activities }: Props) {
   const today   = new Date().toISOString().slice(0, 10);
   const [now]   = useState(() => Date.now());
+  const { plan } = usePlanStore();
   const runs    = useMemo(
     () => activities.filter(a => a.type === 'Run' && a.distance >= 1000 && a.moving_time > 0),
     [activities],
@@ -117,10 +115,10 @@ export default function ProgressSection({ activities }: Props) {
   });
 
   /* ── Current week plan compliance ── */
-  const nextSess   = TRAINING_PLAN.find(p => p.date > today);
-  const weekNum    = nextSess?.week ?? TRAINING_PLAN[TRAINING_PLAN.length - 1].week;
-  const weekSess   = TRAINING_PLAN.filter(p => p.week === weekNum);
-  const planStart  = TRAINING_PLAN[0]?.date;
+  const nextSess   = plan.find(p => p.date > today);
+  const weekNum    = nextSess?.week ?? plan[plan.length - 1].week;
+  const weekSess   = plan.filter(p => p.week === weekNum);
+  const planStart  = plan[0]?.date;
 
   // Two-pass match (mirrors buildActivityMap): each run counts for at most one session
   const usedIds = new Set<number>();

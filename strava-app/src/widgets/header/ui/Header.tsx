@@ -1,16 +1,8 @@
 import { NavLink, useLocation } from 'react-router-dom';
 import { FiltersPanel } from '@/features/activity-filters';
+import { NAV_ITEMS } from '@/shared/config';
 import styles from './Header.module.css';
 
-const TABS = [
-  { path: '/',          icon: '📊', label: 'Дашборд' },
-  { path: '/plan',      icon: '🗓', label: 'План' },
-  { path: '/analysis',  icon: '📈', label: 'Анализ' },
-{ path: '/races',     icon: '🏁', label: 'Забеги' },
-  { path: '/coach',     icon: '🤖', label: 'Тренер' },
-  { path: '/route',     icon: '🗺', label: 'Маршрут' },
-  { path: '/trophies',  icon: '🏆', label: 'Трофеи' },
-];
 
 export default function Header() {
   const { pathname } = useLocation();
@@ -24,7 +16,7 @@ export default function Header() {
         </div>
       </div>
       <nav className={styles.nav}>
-        {TABS.map(tab => (
+        {NAV_ITEMS.map(tab => (
           <NavLink
             key={tab.path}
             to={tab.path}

@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import ReactMarkdown from 'react-markdown';
 import { useActivitiesStore } from '@/entities/activity';
 import { usePlanStore, RACE_DATE, RACE_DIST_KM, RACE_TARGET_MIN, type PlanSession } from '@/entities/training-plan';
+import { Markdown } from '@/shared/ui';
 import { buildSystemPrompt } from '../lib/coachContext';
 import styles from './CoachPage.module.css';
 
@@ -175,7 +175,7 @@ export default function CoachPage() {
             <div key={i}>
               <div className={`${styles.bubble} ${m.role === 'user' ? styles.bubbleUser : styles.bubbleAssistant}`}>
                 {m.role === 'assistant'
-                  ? <div className={styles.md}><ReactMarkdown>{stripPlanBlock(m.content)}</ReactMarkdown></div>
+                  ? <Markdown>{stripPlanBlock(m.content)}</Markdown>
                   : m.content}
                 {m.streaming && <span className={styles.cursor} />}
               </div>

@@ -1,13 +1,14 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   fetchActivityDetail, fetchActivityStreams, ICONS, actPaceSec,
   type StravaActivity, type StravaStreams,
 } from '@/entities/activity';
 import { useAthleteStore } from '@/entities/athlete';
-import { TRAINING_PLAN } from '@/entities/training-plan';
+import { usePlanStore, findSessionForDate } from '@/entities/training-plan';
 import { fmt, dur, pace, hrColor, dateStr, paceSecToStr, decodePolyline } from '@/shared/lib';
 import { LineChart } from '@/shared/ui';
 import { detectIntervals } from '../lib/detectIntervals';
+import { sampleByDistance } from '../lib/metrics';
 import ProAnalysis from './ProAnalysis';
 import IntervalAnalysis from './IntervalAnalysis';
 import styles from './ActivityModal.module.css';
@@ -21,6 +22,8 @@ interface Props {
 
 export default function ActivityModal({ activityId, onClose }: Props) {
   const { hrZones } = useAthleteStore();
+  const { plan: trainingPlan } = usePlanStore();
+  const mapEl = useRef<HTMLDivElement>(null);
   const [detail, setDetail]   = useState<StravaActivity | null>(null);
   const [streams, setStreams] = useState<StravaStreams>({});
   const [loading, setLoading] = useState(true);
@@ -34,11 +37,9 @@ export default function ActivityModal({ activityId, onClose }: Props) {
     return () => { cancelled = true; };
   }, [activityId]);
 
-  // Leaflet map
   useEffect(() => {
-    if (!detail?.map?.summary_polyline) return;
-    const el = document.getElementById('route-map-container');
-    if (!el) return;
+    const el = mapEl.current;
+    if (!detail?.map?.summary_polyline || !el) return;
     const pts = decodePolyline(detail.map.summary_polyline);
     if (!pts.length) return;
     const map = L.map(el, { zoomControl: false, attributionControl: false });
@@ -56,17 +57,7 @@ export default function ActivityModal({ activityId, onClose }: Props) {
     return () => { document.removeEventListener('keydown', handler); document.body.style.overflow = ''; };
   }, [onClose]);
 
-  const shiftDate = (iso: string, n: number) => {
-    const [y, m, d] = iso.split('-').map(Number);
-    const dt = new Date(y, m - 1, d + n);
-    return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
-  };
-  const plan = detail ? (() => {
-    const actDate = detail.start_date_local.slice(0, 10);
-    return TRAINING_PLAN.find(p => p.date === actDate) ||
-           TRAINING_PLAN.find(p => shiftDate(p.date, -1) === actDate) ||
-           TRAINING_PLAN.find(p => shiftDate(p.date,  1) === actDate);
-  })() : null;
+  const plan = detail ? findSessionForDate(trainingPlan, detail.start_date_local.slice(0, 10)) : null;
 
   const ivlData = detail?.type === 'Run' ? detectIntervals(streams) : null;
 
@@ -85,28 +76,8 @@ export default function ActivityModal({ activityId, onClose }: Props) {
     { l: 'Relative Effort', v: detail.suffer_score != null ? String(detail.suffer_score) : '—' },
   ] : [];
 
-  const hasHR   = !!streams.heartrate?.data?.length;
-  const hasCAD  = !!streams.cadence?.data?.length;
-  const hasDist = !!streams.distance?.data?.length;
-
-  let hrChartData: { labels: string[]; data: number[] } | null = null;
-  let cadChartData: { labels: string[]; data: number[] } | null = null;
-  if (hasHR && hasDist) {
-    const dist = streams.distance!.data;
-    const hrD  = streams.heartrate!.data;
-    const step = Math.max(1, Math.floor(dist.length / 120));
-    const xs: string[] = [], ys: number[] = [];
-    for (let i = 0; i < dist.length; i += step) { xs.push(fmt(dist[i] / 1000, 1)); ys.push(hrD[i]); }
-    hrChartData = { labels: xs, data: ys };
-  }
-  if (hasCAD && hasDist) {
-    const dist2 = streams.distance!.data;
-    const cadD  = streams.cadence!.data;
-    const step2 = Math.max(1, Math.floor(dist2.length / 120));
-    const xs2: string[] = [], ys2: number[] = [];
-    for (let j = 0; j < dist2.length; j += step2) { xs2.push(fmt(dist2[j] / 1000, 1)); ys2.push(cadD[j] * 2); }
-    cadChartData = { labels: xs2, data: ys2 };
-  }
+  const hrChartData  = sampleByDistance(streams, 'heartrate');
+  const cadChartData = sampleByDistance(streams, 'cadence', v => v * 2);
 
   return (
     <div className={styles.overlay} onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
@@ -136,7 +107,7 @@ export default function ActivityModal({ activityId, onClose }: Props) {
 
             {/* Route map */}
             {detail.map?.summary_polyline && (
-              <div id="route-map-container" className={styles.routeMap} />
+              <div ref={mapEl} className={styles.routeMap} />
             )}
 
             {/* Plan vs Fact */}
@@ -173,10 +144,10 @@ export default function ActivityModal({ activityId, onClose }: Props) {
             )}
 
             {/* Intervals */}
-            {ivlData && <IntervalAnalysis ivl={ivlData} plan={plan ?? null} />}
+            {ivlData && <IntervalAnalysis ivl={ivlData} plan={plan} />}
 
             {/* Pro analysis */}
-            <ProAnalysis detail={detail} streams={streams} />
+            <ProAnalysis streams={streams} />
 
             {/* Stream charts */}
             {(hrChartData || cadChartData) && (

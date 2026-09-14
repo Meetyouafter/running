@@ -4,17 +4,8 @@ import {
 } from '@/entities/training-plan';
 import { dur, fmt, paceSecToStr } from '@/shared/lib';
 
-const GOAL_DATE = RACE_DATE;
-const GOAL_PACE = RACE_TARGET_PACE_SEC;
-
 function daysUntil(dateStr: string): number {
   return Math.ceil((new Date(dateStr).getTime() - Date.now()) / 86400000);
-}
-
-function s2p(sec: number): string {
-  const m = Math.floor(sec / 60);
-  const s = sec % 60;
-  return `${m}:${s < 10 ? '0' : ''}${s}`;
 }
 
 function splitPace(sp: StravaSplit): number {
@@ -67,7 +58,7 @@ function formatIntervalSplits(splits: StravaSplit[], plan: PlanSession): string 
   if (warmup.length) {
     const wuPace = Math.round(warmup.reduce((s, sp) => s + splitPace(sp), 0) / warmup.length);
     const wuKm   = fmt(warmup.reduce((s, sp) => s + sp.distance, 0) / 1000, 1);
-    lines.push(`  Разминка: ${wuKm}км @ ${s2p(wuPace)}/км`);
+    lines.push(`  Разминка: ${wuKm}км @ ${paceSecToStr(wuPace)}/км`);
   }
 
   if (reps.length) {
@@ -77,21 +68,21 @@ function formatIntervalSplits(splits: StravaSplit[], plan: PlanSession): string 
       const km  = fmt(r.distance / 1000, 2);
       const hr  = r.average_heartrate ? ` ЧСС ${Math.round(r.average_heartrate)}` : '';
       const rec = recoveries[i];
-      const recStr = rec ? ` → восст. ${s2p(splitPace(rec))}/км` : '';
-      lines.push(`    ${i + 1}. ${km}км @ ${s2p(p)}/км${hr}${recStr}`);
+      const recStr = rec ? ` → восст. ${paceSecToStr(splitPace(rec))}/км` : '';
+      lines.push(`    ${i + 1}. ${km}км @ ${paceSecToStr(p)}/км${hr}${recStr}`);
     });
     const avgRepPace = Math.round(reps.reduce((s, r) => s + splitPace(r), 0) / reps.length);
-    lines.push(`  Средний темп интервалов: ${s2p(avgRepPace)}/км (план: ${paceSecToStr(plan.targetPaceSec)}/км, разница: ${avgRepPace > plan.targetPaceSec ? '+' : ''}${avgRepPace - plan.targetPaceSec}с)`);
+    lines.push(`  Средний темп интервалов: ${paceSecToStr(avgRepPace)}/км (план: ${paceSecToStr(plan.targetPaceSec)}/км, разница: ${avgRepPace > plan.targetPaceSec ? '+' : ''}${avgRepPace - plan.targetPaceSec}с)`);
   } else if (work.length) {
     // Couldn't separate reps, show work block
     const wPace = Math.round(work.reduce((s, sp) => s + splitPace(sp), 0) / work.length);
-    lines.push(`  Рабочая часть: ${fmt(work.reduce((s, sp) => s + sp.distance, 0) / 1000, 1)}км @ ${s2p(wPace)}/км (план: ${paceSecToStr(plan.targetPaceSec)}/км)`);
+    lines.push(`  Рабочая часть: ${fmt(work.reduce((s, sp) => s + sp.distance, 0) / 1000, 1)}км @ ${paceSecToStr(wPace)}/км (план: ${paceSecToStr(plan.targetPaceSec)}/км)`);
   }
 
   if (cooldown.length) {
     const cdPace = Math.round(cooldown.reduce((s, sp) => s + splitPace(sp), 0) / cooldown.length);
     const cdKm   = fmt(cooldown.reduce((s, sp) => s + sp.distance, 0) / 1000, 1);
-    lines.push(`  Заминка: ${cdKm}км @ ${s2p(cdPace)}/км`);
+    lines.push(`  Заминка: ${cdKm}км @ ${paceSecToStr(cdPace)}/км`);
   }
 
   return lines.join('\n');
@@ -107,7 +98,7 @@ function formatTempoSplits(splits: StravaSplit[], plan: PlanSession): string {
   if (warmup.length) {
     const p  = Math.round(warmup.reduce((s, sp) => s + splitPace(sp), 0) / warmup.length);
     const km = fmt(warmup.reduce((s, sp) => s + sp.distance, 0) / 1000, 1);
-    lines.push(`  Разминка: ${km}км @ ${s2p(p)}/км`);
+    lines.push(`  Разминка: ${km}км @ ${paceSecToStr(p)}/км`);
   }
 
   if (work.length) {
@@ -117,21 +108,21 @@ function formatTempoSplits(splits: StravaSplit[], plan: PlanSession): string {
       ? `ЧСС ${Math.round(work.filter(sp => sp.average_heartrate).reduce((s, sp) => s + (sp.average_heartrate || 0), 0) / work.filter(sp => sp.average_heartrate).length)}`
       : '';
     const diff = p - plan.targetPaceSec;
-    lines.push(`  Темповый блок: ${km}км @ ${s2p(p)}/км${hr ? ' ' + hr : ''} (план: ${paceSecToStr(plan.targetPaceSec)}/км, разница: ${diff > 0 ? '+' : ''}${diff}с)`);
+    lines.push(`  Темповый блок: ${km}км @ ${paceSecToStr(p)}/км${hr ? ' ' + hr : ''} (план: ${paceSecToStr(plan.targetPaceSec)}/км, разница: ${diff > 0 ? '+' : ''}${diff}с)`);
 
     // First vs second half drift
     const mid = Math.floor(work.length / 2);
     if (work.length >= 4 && mid > 0) {
       const p1 = Math.round(work.slice(0, mid).reduce((s, sp) => s + splitPace(sp), 0) / mid);
       const p2 = Math.round(work.slice(mid).reduce((s, sp) => s + splitPace(sp), 0) / (work.length - mid));
-      lines.push(`  Дрифт: первая половина ${s2p(p1)}/км → вторая ${s2p(p2)}/км (${p2 > p1 ? '+' : ''}${p2 - p1}с)`);
+      lines.push(`  Дрифт: первая половина ${paceSecToStr(p1)}/км → вторая ${paceSecToStr(p2)}/км (${p2 > p1 ? '+' : ''}${p2 - p1}с)`);
     }
   }
 
   if (cooldown.length) {
     const p  = Math.round(cooldown.reduce((s, sp) => s + splitPace(sp), 0) / cooldown.length);
     const km = fmt(cooldown.reduce((s, sp) => s + sp.distance, 0) / 1000, 1);
-    lines.push(`  Заминка: ${km}км @ ${s2p(p)}/км`);
+    lines.push(`  Заминка: ${km}км @ ${paceSecToStr(p)}/км`);
   }
 
   return lines.join('\n');
@@ -145,14 +136,14 @@ function formatLongSplits(splits: StravaSplit[], plan: PlanSession): string {
   const overall = Math.round(splits.reduce((s, sp) => s + splitPace(sp), 0) / splits.length);
   const km = fmt(splits.reduce((s, sp) => s + sp.distance, 0) / 1000, 1);
   const diff = overall - plan.targetPaceSec;
-  lines.push(`  Итого: ${km}км @ ${s2p(overall)}/км (план: ${paceSecToStr(plan.targetPaceSec)}/км, разница: ${diff > 0 ? '+' : ''}${diff}с)`);
+  lines.push(`  Итого: ${km}км @ ${paceSecToStr(overall)}/км (план: ${paceSecToStr(plan.targetPaceSec)}/км, разница: ${diff > 0 ? '+' : ''}${diff}с)`);
 
   // First/last quarter for fade analysis
   const q = Math.floor(splits.length / 4);
   if (q > 0) {
     const p1 = Math.round(splits.slice(0, q).reduce((s, sp) => s + splitPace(sp), 0) / q);
     const p4 = Math.round(splits.slice(-q).reduce((s, sp) => s + splitPace(sp), 0) / q);
-    lines.push(`  Начало: ${s2p(p1)}/км → Конец: ${s2p(p4)}/км (fade: ${p4 > p1 ? '+' : ''}${p4 - p1}с)`);
+    lines.push(`  Начало: ${paceSecToStr(p1)}/км → Конец: ${paceSecToStr(p4)}/км (fade: ${p4 > p1 ? '+' : ''}${p4 - p1}с)`);
   }
 
   // HR drift
@@ -186,8 +177,8 @@ function formatActivity(a: StravaActivity, index: number, plan: PlanSession[]): 
 
   // For workouts, mark avg pace as full-run average (includes warmup/cooldown) — NOT the work pace
   const paceLabel = isWorkout
-    ? `средн.вся ${paceSec ? s2p(paceSec) : '—'}/км⚠`
-    : (paceSec ? `${s2p(paceSec)}/км` : '—');
+    ? `средн.вся ${paceSec ? paceSecToStr(paceSec) : '—'}/км⚠`
+    : (paceSec ? `${paceSecToStr(paceSec)}/км` : '—');
 
   const header = `${index + 1}. ${date} "${a.name}"${planTag} — ${km}км · ${paceLabel} · ${dur(a.moving_time)}${hrStr}`;
 
@@ -196,7 +187,7 @@ function formatActivity(a: StravaActivity, index: number, plan: PlanSession[]): 
   // No splits: show explicit warning for workouts
   if (!a.splits_metric?.length) {
     if (isWorkout) {
-      return header + `\n  ⚠ Нет данных по сплитам. Средний темп ${paceSec ? s2p(paceSec) : '—'}/км — это вся пробежка включая разминку/заминку, НЕ является темпом рабочих отрезков.`;
+      return header + `\n  ⚠ Нет данных по сплитам. Средний темп ${paceSec ? paceSecToStr(paceSec) : '—'}/км — это вся пробежка включая разминку/заминку, НЕ является темпом рабочих отрезков.`;
     }
     return header;
   }
@@ -265,7 +256,7 @@ function weeklyVolume(runs: StravaActivity[]): string {
 
 // ─── Easy run discipline ──────────────────────────────────────────────────
 function easyRunDiscipline(runs: StravaActivity[], plan: PlanSession[]): string {
-  const easyPaceThreshold = GOAL_PACE + 78; // ~7:00/km
+  const easyPaceThreshold = RACE_TARGET_PACE_SEC + 78; // ~7:00/km
   const easyRuns = runs.filter(a => {
     const s = matchPlan(a, plan);
     return s?.type === 'easy' || s?.type === 'long';
@@ -279,7 +270,7 @@ function easyRunDiscipline(runs: StravaActivity[], plan: PlanSession[]): string 
   });
 
   if (tooFast.length === 0) return 'Лёгкие пробежки — в норме';
-  return `⚠ ${tooFast.length}/${easyRuns.length} лёгких пробежек выполнены слишком быстро (норма >${s2p(easyPaceThreshold)}/км)`;
+  return `⚠ ${tooFast.length}/${easyRuns.length} лёгких пробежек выполнены слишком быстро (норма >${paceSecToStr(easyPaceThreshold)}/км)`;
 }
 
 // ─── TSB fatigue ──────────────────────────────────────────────────────────
@@ -307,15 +298,15 @@ function goalProgress(runs: StravaActivity[]): string {
   }, 999);
 
   if (bestPace === 999) return 'Нет данных';
-  const gap = bestPace - GOAL_PACE;
-  if (gap <= 0) return `✓ Лучший темп ${s2p(bestPace)}/км уже быстрее цели`;
-  return `Лучший темп за последние 10 пробежек: ${s2p(bestPace)}/км (до цели: −${gap}с/км)`;
+  const gap = bestPace - RACE_TARGET_PACE_SEC;
+  if (gap <= 0) return `✓ Лучший темп ${paceSecToStr(bestPace)}/км уже быстрее цели`;
+  return `Лучший темп за последние 10 пробежек: ${paceSecToStr(bestPace)}/км (до цели: −${gap}с/км)`;
 }
 
 // ─── Main export ──────────────────────────────────────────────────────────
 export function buildSystemPrompt(recentActivities: StravaActivity[], plan: PlanSession[]): string {
   const today    = new Date().toISOString().slice(0, 10);
-  const daysLeft = daysUntil(GOAL_DATE);
+  const daysLeft = daysUntil(RACE_DATE);
   const runs     = recentActivities.filter(a => a.type === 'Run');
   const last20   = runs.slice(0, 20);
 
@@ -329,7 +320,7 @@ export function buildSystemPrompt(recentActivities: StravaActivity[], plan: Plan
 ══════════════════════════════════════════
 Имя: Антон Левус · Да Нанг, Вьетнам
 Дата: ${today} · Осталось до забега: ${daysLeft} дней
-ЦЕЛЬ: ${RACE_DIST_KM} км за ${RACE_TARGET_MIN}:00 (темп ${s2p(GOAL_PACE)}/км) · ${GOAL_DATE}
+ЦЕЛЬ: ${RACE_DIST_KM} км за ${RACE_TARGET_MIN}:00 (темп ${paceSecToStr(RACE_TARGET_PACE_SEC)}/км) · ${RACE_DATE}
 
 Объём 7д: ${fmt(kmLast7, 1)} км / 30д: ${fmt(kmLast30, 1)} км
 Нагрузка (TSB): ${fatigue(last20)}

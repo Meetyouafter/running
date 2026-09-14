@@ -1,46 +1,31 @@
 import { type JSX } from 'react';
-import type { StravaActivity, StravaStreams } from '@/entities/activity';
+import type { StravaStreams } from '@/entities/activity';
 import { fmt } from '@/shared/lib';
+import { aerobicDecoupling, avgCadence } from '../lib/metrics';
 import styles from './ProAnalysis.module.css';
 
-interface Props {
-  detail:  StravaActivity;
-  streams: StravaStreams;
-}
+interface Props { streams: StravaStreams }
 
 export default function ProAnalysis({ streams }: Props) {
-  const hasCAD  = !!streams.cadence?.data?.length;
   const hasHR   = !!streams.heartrate?.data?.length;
   const hasVel  = !!streams.velocity_smooth?.data?.length;
-  const hasDist = !!streams.distance?.data?.length;
 
   const cards: { l: string; v: string; n: string; verdict: string; cls: string }[] = [];
 
   // Cadence
-  if (hasCAD) {
-    const avg = streams.cadence!.data.reduce((s, v) => s + v, 0) / streams.cadence!.data.length * 2;
+  const avg = avgCadence(streams);
+  if (avg !== null) {
     const verdict = avg >= 170 ? 'Отлично' : avg >= 160 ? 'Приемлемо' : 'Низкий — риск оверстрайда';
     const cls     = avg >= 170 ? 'good'     : avg >= 160 ? 'warn'      : 'bad';
     cards.push({ l: 'Каденс', v: String(Math.round(avg)), n: 'шаг/мин · норма 170–180', verdict, cls });
   }
 
   // Aerobic decoupling
-  if (hasHR && hasVel && hasDist) {
-    const dist = streams.distance!.data, hr = streams.heartrate!.data, vel = streams.velocity_smooth!.data;
-    const mid  = Math.floor(dist.length / 2);
-    let ef1 = 0, ef2 = 0, c1 = 0, c2 = 0;
-    for (let i = 0; i < dist.length; i++) {
-      if (vel[i] > 0 && hr[i] > 0) {
-        const ef = vel[i] / hr[i];
-        if (i < mid) { ef1 += ef; c1++; } else { ef2 += ef; c2++; }
-      }
-    }
-    if (c1 > 0 && c2 > 0) {
-      const dc = Math.abs((ef1 / c1 - ef2 / c2) / (ef1 / c1) * 100);
-      const verdict = dc < 5 ? 'Отлично — аэробная зона' : dc < 10 ? 'Умеренный дрейф' : 'Высокий — перегрев?';
-      const cls     = dc < 5 ? 'good'                     : dc < 10 ? 'warn'             : 'bad';
-      cards.push({ l: 'Аэробный декаплинг', v: fmt(dc, 1) + '%', n: 'норма <5%', verdict, cls });
-    }
+  const dc = aerobicDecoupling(streams);
+  if (dc !== null) {
+    const verdict = dc < 5 ? 'Отлично — аэробная зона' : dc < 10 ? 'Умеренный дрейф' : 'Высокий — перегрев?';
+    const cls     = dc < 5 ? 'good'                     : dc < 10 ? 'warn'             : 'bad';
+    cards.push({ l: 'Аэробный декаплинг', v: fmt(dc, 1) + '%', n: 'норма <5%', verdict, cls });
   }
 
   // Pace consistency

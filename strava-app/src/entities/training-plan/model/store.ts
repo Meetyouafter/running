@@ -1,19 +1,12 @@
 import { create } from 'zustand';
+import { readStorage, writeStorage } from '@/shared/lib';
 import type { PlanSession } from './types';
 import { TRAINING_PLAN } from '../config/plan';
 
 const PLAN_KEY = 'custom_training_plan';
 
-function loadPlan(): PlanSession[] {
-  try {
-    const raw = localStorage.getItem(PLAN_KEY);
-    return raw ? (JSON.parse(raw) as PlanSession[]) : TRAINING_PLAN;
-  } catch { return TRAINING_PLAN; }
-}
-
-export function savePlan(plan: PlanSession[]) {
-  try { localStorage.setItem(PLAN_KEY, JSON.stringify(plan)); } catch { /* quota */ }
-}
+const loadPlan = () => readStorage<PlanSession[]>(PLAN_KEY, TRAINING_PLAN);
+const savePlan = (plan: PlanSession[]) => writeStorage(PLAN_KEY, plan);
 
 export function isDefaultPlan(plan: PlanSession[]): boolean {
   return JSON.stringify(plan) === JSON.stringify(TRAINING_PLAN);

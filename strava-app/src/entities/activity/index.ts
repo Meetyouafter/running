@@ -6,4 +6,4 @@ export { useActivitiesStore } from './model/store';
 export {
   fetchActivities, clearActivityCache, fetchActivityDetail, fetchActivityStreams, fetchSegmentsExplore,
 } from './api/activities';
-export { ICONS, BADGE_CLASS, ctype, actPaceSec } from './lib/activity';
+export { ICONS, ctype, actPaceSec } from './lib/activity';

@@ -6,11 +6,6 @@ export const ICONS: Record<string, string> = {
   AlpineSki: '⛷️', Rowing: '🚣', StandUpPaddling: '🏄',
 };
 
-export const BADGE_CLASS: Record<string, string> = {
-  Run: 'badge-run', Ride: 'badge-ride', VirtualRide: 'badge-ride',
-  Walk: 'badge-walk', Hike: 'badge-walk',
-};
-
 /** Canonical activity type: VirtualRide is treated as Ride. */
 export function ctype(a: StravaActivity) {
   return a.type === 'VirtualRide' ? 'Ride' : a.type;
