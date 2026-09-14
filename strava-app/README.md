@@ -1,3 +1,34 @@
+# Strava Dashboard
+
+## Архитектура (Feature-Sliced Design)
+
+`src/` разложен по слоям FSD, сверху вниз:
+
+| Слой | Что лежит |
+|---|---|
+| `app/` | точка сборки: `App.tsx` (роутер + загрузка данных), глобальные стили, splash |
+| `pages/` | по одному слайсу на роут: `dashboard`, `plan`, `analysis`, `races`, `coach`, `route`, `trophies`, `intervals` |
+| `widgets/` | крупные составные блоки: `header`, `activity-modal` |
+| `features/` | пользовательские сценарии: `activity-filters` (период/тип + стор фильтров) |
+| `entities/` | бизнес-сущности: `activity`, `athlete`, `training-plan`, `race` — типы, API, сторы, хелперы |
+| `shared/` | без бизнес-логики: `api` (Strava-клиент, Gemini), `lib` (форматирование, даты), `ui` (графики) |
+
+Внутри слайса — сегменты `ui/`, `model/`, `api/`, `lib/`, `config/`; наружу слайс отдаёт только `index.ts`.
+
+Правила (проверяются ESLint, `eslint-plugin-boundaries`, см. `eslint.config.js`):
+
+- слой импортирует только **нижележащие** слои (`app → pages → widgets → features → entities → shared`);
+- слайсы одного слоя **не импортируют друг друга**; для сущностей исключение — `entities/<a>/@x/<b>.ts` (публичный API `a` специально для `b`);
+- импорт из чужого слайса — только через его `index.ts` (никаких `@/entities/activity/model/store`);
+- все импорты между слайсами — через алиас `@/` (`@/entities/activity`), относительные пути только внутри слайса;
+- любой файл в `src/` обязан лежать в одном из слоёв.
+
+```bash
+npm run lint   # в т.ч. проверка границ
+```
+
+---
+
 # React + TypeScript + Vite
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
